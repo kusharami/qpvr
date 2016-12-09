@@ -1,5 +1,7 @@
 #include "QPVRHandler.h"
 
+#include <QVariant>
+
 
 QPVRHandler::QPVRHandler()
 {

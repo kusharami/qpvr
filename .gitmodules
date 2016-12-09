@@ -1,0 +1,3 @@
+[submodule "thirdparty/PowerVR_Native_SDK"]
+	path = thirdparty/PowerVR_Native_SDK
+	url = https://github.com/kusharami/PowerVR_Native_SDK.git

@@ -5,10 +5,12 @@ TARGET = qpvr
 TEMPLATE = lib
 CONFIG += plugin
 
+include(pvr.pri)
+
 OTHER_FILES += pvr.json
 
- target.path += $$[QT_INSTALL_PLUGINS]/imageformats
- INSTALLS += target
+target.path += $$[QT_INSTALL_PLUGINS]/imageformats
+INSTALLS += target
 
 HEADERS += \
     QPVRPlugin.h \
