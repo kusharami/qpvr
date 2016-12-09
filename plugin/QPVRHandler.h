@@ -7,7 +7,7 @@ class QPVRHandler : public QImageIOHandler
 public:
 	QPVRHandler();
 
-	virtual QByteArray name() const;
+	static bool canRead(QIODevice *device);
 
 	virtual bool canRead() const override;
 	virtual bool read(QImage *image) override;

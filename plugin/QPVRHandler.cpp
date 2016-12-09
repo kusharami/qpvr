@@ -2,15 +2,18 @@
 
 #include <QVariant>
 
+#include "PVRAssets/Texture/Texture.h"
 
 QPVRHandler::QPVRHandler()
 {
 
 }
 
-QByteArray QPVRHandler::name() const
+bool QPVRHandler::canRead(QIODevice *device)
 {
+	Q_ASSERT(nullptr != device);
 
+	device->peek()
 }
 
 bool QPVRHandler::canRead() const

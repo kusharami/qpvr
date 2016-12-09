@@ -14,8 +14,10 @@ INSTALLS += target
 
 HEADERS += \
     QPVRPlugin.h \
-    QPVRHandler.h
+    QPVRHandler.h \
+    CCZStream.h
 
 SOURCES += \
     QPVRPlugin.cpp \
-    QPVRHandler.cpp
+    QPVRHandler.cpp \
+    CCZStream.cpp

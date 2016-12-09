@@ -19,6 +19,7 @@ CONFIG(debug, debug|release) {
 
 macx {
     DEFINES += "TARGET_OS_MAC=1"
+    LIBS += -lz
 }
 
 LIBS += -L$$PREBUILT
