@@ -19,6 +19,13 @@ macx {
 unix|win32-g++ {
     QMAKE_CXXFLAGS_WARN_OFF -= -w
     QMAKE_CXXFLAGS += -Wall
+    QMAKE_CXXFLAGS += \
+        -Wno-unknown-pragmas \
+        -Wno-sometimes-uninitialized \
+        -Wno-unused-function \
+        -Wno-unused-local-typedef \
+        -Wno-switch
+
 } else {
     win32 {
         QMAKE_CXXFLAGS_WARN_OFF -= -W0

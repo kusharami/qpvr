@@ -10,6 +10,8 @@ CONFIG += c++11 warn_off
 unix|win32-g++ {
     QMAKE_CXXFLAGS_WARN_OFF -= -w
     QMAKE_CXXFLAGS += -Wall
+    QMAKE_CXXFLAGS += \
+        -Wno-unknown-pragmas
 } else {
     win32 {
         QMAKE_CXXFLAGS_WARN_OFF -= -W0
@@ -44,24 +46,13 @@ win32 {
     }
 }
 
-CONFIG(debug, debug|release) {
-    CONFIG_NAME = debug
-    win32 {
+win32 {
+    CONFIG(debug, debug|release) {
+        CONFIG_NAME = debug
         TARGET_EXT = d.dll
-    }
-
-    macx {
-        TARGET_EXT = d.dylib
-    }
-
-} else {
-    CONFIG_NAME = release
-    win32 {
+    } else {
+        CONFIG_NAME = release
         TARGET_EXT = .dll
-    }
-
-    macx {
-        TARGET_EXT = .dylib
     }
 }
 
