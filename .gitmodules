@@ -1,6 +1,6 @@
 [submodule "thirdparty/PowerVR_Native_SDK"]
 	path = thirdparty/PowerVR_Native_SDK
-	url = https://github.com/kusharami/PowerVR_Native_SDK.git
+	url = git@github.com:kusharami/PowerVR_Native_SDK.git
 [submodule "thirdparty/qzstream"]
 	path = thirdparty/qzstream
 	url = git@github.com:kusharami/qzstream.git

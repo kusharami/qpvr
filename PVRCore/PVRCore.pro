@@ -19,6 +19,8 @@ macx {
 unix|win32-g++ {
     QMAKE_CXXFLAGS_WARN_OFF -= -w
     QMAKE_CXXFLAGS += -Wall
+    QMAKE_CXXFLAGS += \
+        -Wno-unknown-pragmas
 } else {
     win32 {
         QMAKE_CXXFLAGS_WARN_OFF -= -W0
@@ -85,7 +87,6 @@ SOURCES += \
     ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore/FileStream.cpp \
     ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore/FileWrapStream.cpp \
     ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore/Log.cpp \
-    ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore/NativeLibrary.cpp \
     ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore/StringFunctions.cpp \
     ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore/Time.cpp \
     ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore/UnicodeConverter.cpp \
@@ -101,6 +102,7 @@ win32 {
         ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore/Windows/WindowsResourceStream.h
 
     SOURCES += \
+        ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore/NativeLibrary.cpp \
         ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore/Windows/StackTraceWindows.cpp \
         ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore/Windows/WindowsResourceStream.cpp
 }

@@ -799,7 +799,7 @@ bool QPVRHandler::scanDevice() const
 	{
 		auto &newHeader = tex.getHeader();
 
-		auto &pixelFormat = newHeader.getPixelFormat();
+		auto pixelFormat = newHeader.getPixelFormat();
 		PixelFormat cvtPixelFormat;
 
 		bool isPremultiplied = newHeader.isPreMultiplied();
@@ -970,7 +970,7 @@ bool QPVRHandler::writeTexture(const CPVRTexture &texture)
 			oldHeader.getOrientation(ePVRTAxisX) |
 			oldHeader.getOrientation(ePVRTAxisY) |
 			oldHeader.getOrientation(ePVRTAxisZ)));
-	auto &cubeMapOrder = oldHeader.getCubeMapOrder();
+	auto cubeMapOrder = oldHeader.getCubeMapOrder();
 	if (!cubeMapOrder.empty())
 		header.setCubeMapOrder(cubeMapOrder.c_str());
 	header.setIsPreMultiplied(oldHeader.isPreMultiplied());
