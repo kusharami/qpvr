@@ -12,21 +12,21 @@ CONFIG += staticlib
 
 CONFIG += c++11 warn_off
 
-unix|win32-g++ {
-    QMAKE_CXXFLAGS_WARN_OFF -= -w
-    QMAKE_CXXFLAGS += -Wall
-}
-
 macx {
     DEFINES += "TARGET_OS_MAC=1"
 }
 
-win32 {
-    QMAKE_CXXFLAGS_WARN_OFF -= -W0
-    QMAKE_CXXFLAGS += -W3
-    DEFINES += _CRT_SECURE_NO_WARNINGS _MBCS
-    DEFINES -= UNICODE
-    DEFINES -= _UNICODE
+unix|win32-g++ {
+    QMAKE_CXXFLAGS_WARN_OFF -= -w
+    QMAKE_CXXFLAGS += -Wall
+} else {
+    win32 {
+        QMAKE_CXXFLAGS_WARN_OFF -= -W0
+        QMAKE_CXXFLAGS += -W3
+        DEFINES += _CRT_SECURE_NO_WARNINGS _MBCS
+        DEFINES -= UNICODE
+        DEFINES -= _UNICODE
+    }
 }
 
 HEADERS += \

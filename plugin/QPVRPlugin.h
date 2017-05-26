@@ -5,7 +5,8 @@
 class QPVRPlugin : public QImageIOPlugin
 {
 	Q_OBJECT
-	Q_PLUGIN_METADATA(IID "com.github.kusharami.QPVRPlugin" FILE "pvr.json")
+	Q_PLUGIN_METADATA(
+		IID "org.qt-project.Qt.QImageIOHandlerFactoryInterface" FILE "pvr.json")
 
 public:
 	virtual Capabilities capabilities(

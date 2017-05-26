@@ -3,6 +3,7 @@
 #include "QPVRHandler.h"
 
 #include <QIODevice>
+#include <QFile>
 
 QImageIOPlugin::Capabilities QPVRPlugin::capabilities(
 	QIODevice *device, const QByteArray &format) const
@@ -13,6 +14,14 @@ QImageIOPlugin::Capabilities QPVRPlugin::capabilities(
 		return Capabilities(CanRead | CanWrite);
 	}
 
+	auto file = dynamic_cast<QFile *>(device);
+
+	if (nullptr != file && file->fileName().endsWith(
+			QLatin1String(".pvr.ccz"), Qt::CaseInsensitive) &&
+		0 == strcmp(format.data(), "ccz"))
+	{
+		// detected pvr.ccz
+	} else
 	if (!format.isEmpty())
 		return 0;
 
@@ -22,7 +31,7 @@ QImageIOPlugin::Capabilities QPVRPlugin::capabilities(
 	Capabilities result;
 
 	if (device->isReadable() &&
-		QPVRHandler::detectFormat(device) != QPVRHandler::UnknownFormat)
+		QPVRHandler::detectFileFormat(device) != QPVRHandler::UnknownFormat)
 	{
 		result |= CanRead;
 	}
@@ -40,6 +49,10 @@ QImageIOHandler *QPVRPlugin::create(
 {
 	auto handler = new QPVRHandler;
 	handler->setDevice(device);
-	handler->setFormat(format);
+
+	handler->setFormat(
+		(0 == strcmp(format.data(), "ccz"))
+		? QByteArrayLiteral("pvr.ccz")
+		: format);
 	return handler;
 }

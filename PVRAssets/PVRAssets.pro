@@ -10,21 +10,23 @@ TARGET = PVRAssets
 TEMPLATE = lib
 CONFIG += staticlib
 
-unix|win32-g++ {
-    QMAKE_CXXFLAGS_WARN_OFF -= -w
-    QMAKE_CXXFLAGS += -Wall
-}
+CONFIG += c++11 warn_off
 
 macx {
     DEFINES += "TARGET_OS_MAC=1"
 }
 
-win32 {
-    QMAKE_CXXFLAGS_WARN_OFF -= -W0
-    QMAKE_CXXFLAGS += -W3
-    DEFINES += _CRT_SECURE_NO_WARNINGS _MBCS
-    DEFINES -= UNICODE
-    DEFINES -= _UNICODE
+unix|win32-g++ {
+    QMAKE_CXXFLAGS_WARN_OFF -= -w
+    QMAKE_CXXFLAGS += -Wall
+} else {
+    win32 {
+        QMAKE_CXXFLAGS_WARN_OFF -= -W0
+        QMAKE_CXXFLAGS += -W3
+        DEFINES += _CRT_SECURE_NO_WARNINGS _MBCS
+        DEFINES -= UNICODE
+        DEFINES -= _UNICODE
+    }
 }
 
 INCLUDEPATH += \

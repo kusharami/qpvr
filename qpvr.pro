@@ -3,7 +3,9 @@ SUBDIRS = \
     PVRCore \
     PVRAssets \
     QZStream \
-    plugin
+    plugin \
+    tests
 
 plugin.depends = PVRCore PVRAssets QZStream
+tests.depends = plugin
 QZStream.file = thirdparty/qzstream/lib/QZStream.pro

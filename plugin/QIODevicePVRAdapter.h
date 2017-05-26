@@ -8,16 +8,15 @@ class QIODevicePVRAdapter : public pvr::Stream
 {
 public:
 	QIODevicePVRAdapter(QIODevice *adaptee);
-
-	QIODevice *adaptee() const;
+	virtual ~QIODevicePVRAdapter() override;
 
 	virtual bool read(
 		size_t elementSize, size_t elementCount,
-		void *buffer, size_t &dataRead) const override;
+		void *buffer, size_t &elementsRead) const override;
 
 	virtual bool write(
 		size_t elementSize, size_t elementCount,
-		const void *buffer, size_t &dataWritten) override;
+		const void *buffer, size_t &elementsWritten) override;
 
 	virtual bool seek(long offset, SeekOrigin origin) const override;
 
@@ -32,12 +31,17 @@ public:
 	virtual size_t getSize() const override;
 
 private:
-	QIODevice *mAdaptee;
-	uint64_t mOriginalPosition;
-	mutable bool mIsOpen;
-};
+	typedef int64_t (QIODevice::*Read)(char *, int64_t);
+	typedef int64_t (QIODevice::*Write)(const char *, int64_t);
+	using Operation = Read;
 
-inline QIODevice *QIODevicePVRAdapter::adaptee() const
-{
-	return mAdaptee;
-}
+	bool ioOperation(
+		size_t elementSize, size_t elementCount,
+		char *buffer, size_t &resultCount,
+		Operation op) const;
+
+	QIODevice *mAdaptee;
+	mutable int64_t mOriginalPosition;
+	mutable bool mIsOpen;
+	mutable bool mTransactionStarted;
+};

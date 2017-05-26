@@ -2,6 +2,8 @@
 
 #include <QIODevice>
 
+#include <QDebug>
+
 using namespace pvr;
 
 static inline qint64 sizeToInt64(size_t size)
@@ -16,56 +18,49 @@ static inline qint64 sizeToInt64(size_t size)
 				: std::numeric_limits<qint64>::max())));
 }
 
-template <typename ADAPTER, typename BUFTYPE, typename FUNCTION>
-static inline bool ioOperation(
-	ADAPTER *adapter,
-	size_t elementSize, size_t elementCount,
-	BUFTYPE *buffer, size_t &resultCount,
-	FUNCTION function)
-{
-	if (!adapter->isReadable() || !adapter->isopen())
-		return false;
-
-	auto adaptee = adapter->adaptee();
-	auto requestedSize = elementSize * elementCount;
-	auto size = sizeToInt64(requestedSize);
-	resultCount = static_cast<size_t>(
-			(adaptee->*function)(buffer, size));
-	return resultCount == requestedSize ||
-		   (adaptee->isSequential() && adaptee->atEnd());
-}
-
 QIODevicePVRAdapter::QIODevicePVRAdapter(QIODevice *adaptee)
 	: Stream("")
 	, mAdaptee(adaptee)
+	, mOriginalPosition(0)
 	, mIsOpen(false)
+	, mTransactionStarted(false)
 {
 	Q_ASSERT(nullptr != mAdaptee);
 	Q_ASSERT(mAdaptee->isOpen());
 
 	m_isReadable = mAdaptee->isReadable();
 	m_isWritable = mAdaptee->isWritable();
-	mOriginalPosition = mAdaptee->pos();
+}
+
+QIODevicePVRAdapter::~QIODevicePVRAdapter()
+{
+	close();
 }
 
 bool QIODevicePVRAdapter::read(
 	size_t elementSize, size_t elementCount,
-	void *buffer, size_t &dataRead) const
+	void *buffer, size_t &elementsRead) const
 {
+	if (!isReadable())
+		return false;
+
 	return ioOperation(
-		this, elementSize, elementCount,
-		(char *) buffer, dataRead,
+		elementSize, elementCount,
+		(char *) buffer, elementsRead,
 		&QIODevice::read);
 }
 
 bool QIODevicePVRAdapter::write(
 	size_t elementSize, size_t elementCount,
-	const void *buffer, size_t &dataWritten)
+	const void *buffer, size_t &elementsWritten)
 {
+	if (!isWritable())
+		return false;
+
 	return ioOperation(
-		this, elementSize, elementCount,
-		(const char *) buffer, dataWritten,
-		&QIODevice::write);
+		elementSize, elementCount,
+		(char *) buffer, elementsWritten,
+		(Operation) static_cast<Write>(&QIODevice::write));
 }
 
 bool QIODevicePVRAdapter::seek(long offset, SeekOrigin origin) const
@@ -76,7 +71,7 @@ bool QIODevicePVRAdapter::seek(long offset, SeekOrigin origin) const
 	switch (origin)
 	{
 		case SeekOriginFromStart:
-			return mAdaptee->seek(offset);
+			return mAdaptee->seek(offset + mOriginalPosition);
 
 		case SeekOriginFromCurrent:
 			return mAdaptee->seek(mAdaptee->pos() + offset);
@@ -93,18 +88,31 @@ bool QIODevicePVRAdapter::open() const
 	if (mIsOpen)
 		return true;
 
-	if (mAdaptee->seek(mOriginalPosition))
-	{
-		mIsOpen = true;
-		return true;
-	}
+	Q_ASSERT(mAdaptee->isOpen());
 
-	return false;
+	mIsOpen = true;
+	if (!mAdaptee->isTransactionStarted())
+	{
+		mTransactionStarted = true;
+		mAdaptee->startTransaction();
+	}
+	mOriginalPosition = mAdaptee->pos();
+	return true;
 }
 
 void QIODevicePVRAdapter::close()
 {
-	mIsOpen = false;
+	if (mIsOpen)
+	{
+
+		mIsOpen = false;
+		if (mTransactionStarted)
+		{
+			mTransactionStarted = false;
+			Q_ASSERT(mAdaptee->isTransactionStarted());
+			mAdaptee->rollbackTransaction();
+		}
+	}
 }
 
 bool QIODevicePVRAdapter::isopen() const
@@ -114,10 +122,28 @@ bool QIODevicePVRAdapter::isopen() const
 
 size_t QIODevicePVRAdapter::getPosition() const
 {
-	return static_cast<size_t>(mAdaptee->pos());
+	return static_cast<size_t>(mAdaptee->pos() - mOriginalPosition);
 }
 
 size_t QIODevicePVRAdapter::getSize() const
 {
-	return static_cast<size_t>(mAdaptee->size());
+	return static_cast<size_t>(mAdaptee->size() - mOriginalPosition);
+}
+
+bool QIODevicePVRAdapter::ioOperation(
+	size_t elementSize, size_t elementCount,
+	char *buffer, size_t &resultCount,
+	Operation op) const
+{
+	if (!isopen())
+		return false;
+
+	auto requestedSize = elementSize * elementCount;
+	auto size = sizeToInt64(requestedSize);
+	resultCount = static_cast<size_t>((mAdaptee->*op)(buffer, size));
+	bool result = resultCount == requestedSize ||
+		(!mAdaptee->isSequential() && mAdaptee->atEnd());
+
+	resultCount /= elementSize;
+	return result;
 }
