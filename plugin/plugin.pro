@@ -1,4 +1,4 @@
-VERSION = 1.0.1
+VERSION = 1.0.2
 
 TARGET = qpvr
 
@@ -16,6 +16,7 @@ unix|win32-g++ {
     win32 {
         QMAKE_CXXFLAGS_WARN_OFF -= -W0
         QMAKE_CXXFLAGS += -W3
+        QMAKE_LFLAGS += /NODEFAULTLIB:LIBCMT
     }
 }
 
@@ -53,13 +54,11 @@ win32 {
     }
 }
 
-    CONFIG(debug, debug|release) {
-        CONFIG_DIR = Debug
-        TARGET_EXT = d.dll
-    } else {
-        CONFIG_DIR = Release
-        TARGET_EXT = .dll
-    }
+CONFIG(debug, debug|release) {
+    CONFIG_DIR = Debug
+} else {
+    CONFIG_DIR = Release
+}
 
 LIBS += -L$$_PRO_FILE_PWD_/../thirdparty/qzstream/build/$$CONFIG_DIR
 LIBS += -L$$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
