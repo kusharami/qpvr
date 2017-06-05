@@ -62,7 +62,6 @@ CONFIG(debug, debug|release) {
 
 LIBS += -L$$_PRO_FILE_PWD_/../thirdparty/qzstream/build/$$CONFIG_DIR
 LIBS += -L$$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
-LIBS += -L$$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
 LIBS += -lPVRCore -lPVRAssets -lPVRTexLib -lQZStream
 
 OTHER_FILES += pvr.json
