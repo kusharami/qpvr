@@ -19,8 +19,7 @@ unix|win32-g++ {
     }
 }
 
-target.path += $$[QT_INSTALL_PLUGINS]/imageformats
-INSTALLS += target
+DESTDIR = $$[QT_INSTALL_PLUGINS]/imageformats
 
 HEADERS += \
     QPVRPlugin.h \
@@ -48,17 +47,23 @@ win32 {
 
 win32 {
     CONFIG(debug, debug|release) {
-        CONFIG_NAME = debug
         TARGET_EXT = d.dll
     } else {
-        CONFIG_NAME = release
         TARGET_EXT = .dll
     }
 }
 
-LIBS += -L$$OUT_PWD/../thirdparty/qzstream/lib/$$CONFIG_NAME
-LIBS += -L$$OUT_PWD/../PVRAssets/$$CONFIG_NAME
-LIBS += -L$$OUT_PWD/../PVRCore/$$CONFIG_NAME
+    CONFIG(debug, debug|release) {
+        CONFIG_DIR = Debug
+        TARGET_EXT = d.dll
+    } else {
+        CONFIG_DIR = Release
+        TARGET_EXT = .dll
+    }
+
+LIBS += -L$$_PRO_FILE_PWD_/../thirdparty/qzstream/build/$$CONFIG_DIR
+LIBS += -L$$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
+LIBS += -L$$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
 LIBS += -lPVRCore -lPVRAssets -lPVRTexLib -lQZStream
 
 OTHER_FILES += pvr.json

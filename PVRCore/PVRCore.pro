@@ -10,6 +10,14 @@ TARGET = PVRCore
 TEMPLATE = lib
 CONFIG += staticlib
 
+CONFIG(debug, debug|release) {
+    CONFIG_DIR = Debug
+} else {
+    CONFIG_DIR = Release
+}
+
+DESTDIR = $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
+
 CONFIG += c++11 warn_off
 
 macx {
