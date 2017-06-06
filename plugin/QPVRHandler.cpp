@@ -882,8 +882,7 @@ bool QPVRHandler::scanDevice() const
 
 		header.setOrientation((EPVRTOrientation) orientation);
 
-		TexturePtr texture(
-			new CPVRTexture(header, tex.getDataPointer()));
+		TexturePtr texture(new CPVRTexture(header, tex.getDataPointer()));
 
 		if ((cvtPixelFormat == pixelFormat &&
 			 newHeader.getColorSpace() == types::ColorSpace::lRGB &&
