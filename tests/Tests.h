@@ -4,7 +4,7 @@
 
 class QDir;
 
-class Tests : public QObject
+class PVRTests : public QObject
 {
 	Q_OBJECT
 
