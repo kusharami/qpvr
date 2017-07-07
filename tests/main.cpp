@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 
 	QTEST_SET_MAIN_SOURCE_PATH
 
-	Tests tests;
+	PVRTests tests;
 
 	return QTest::qExec(&tests, argc, argv);
 }

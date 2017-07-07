@@ -1,4 +1,4 @@
-VERSION = 1.0.1
+VERSION = 1.0.2
 
 TARGET = qpvr
 
@@ -16,11 +16,11 @@ unix|win32-g++ {
     win32 {
         QMAKE_CXXFLAGS_WARN_OFF -= -W0
         QMAKE_CXXFLAGS += -W3
+        QMAKE_LFLAGS += /NODEFAULTLIB:LIBCMT
     }
 }
 
-target.path += $$[QT_INSTALL_PLUGINS]/imageformats
-INSTALLS += target
+DESTDIR = $$[QT_INSTALL_PLUGINS]/imageformats
 
 HEADERS += \
     QPVRPlugin.h \
@@ -48,17 +48,20 @@ win32 {
 
 win32 {
     CONFIG(debug, debug|release) {
-        CONFIG_NAME = debug
         TARGET_EXT = d.dll
     } else {
-        CONFIG_NAME = release
         TARGET_EXT = .dll
     }
 }
 
-LIBS += -L$$OUT_PWD/../thirdparty/qzstream/lib/$$CONFIG_NAME
-LIBS += -L$$OUT_PWD/../PVRAssets/$$CONFIG_NAME
-LIBS += -L$$OUT_PWD/../PVRCore/$$CONFIG_NAME
+CONFIG(debug, debug|release) {
+    CONFIG_DIR = Debug
+} else {
+    CONFIG_DIR = Release
+}
+
+LIBS += -L$$_PRO_FILE_PWD_/../thirdparty/qzstream/build/$$CONFIG_DIR
+LIBS += -L$$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
 LIBS += -lPVRCore -lPVRAssets -lPVRTexLib -lQZStream
 
 OTHER_FILES += pvr.json

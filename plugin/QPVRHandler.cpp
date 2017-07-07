@@ -54,8 +54,7 @@ using namespace assetReaders;
 using namespace assetWriters;
 
 QPVRHandler::QPVRHandler()
-	: mTexture(nullptr)
-	, mCompressionRatio(Z_DEFAULT_COMPRESSION)
+	: mCompressionRatio(Z_DEFAULT_COMPRESSION)
 	, mQuality(1.0)
 	, mOrientation(0)
 	, mFormat(UnknownFormat)
@@ -64,11 +63,6 @@ QPVRHandler::QPVRHandler()
 	, mScanned(false)
 {
 
-}
-
-QPVRHandler::~QPVRHandler()
-{
-	delete mTexture;
 }
 
 QPVRHandler::Format QPVRHandler::detectFileFormat(QIODevice *device)
@@ -129,6 +123,12 @@ bool QPVRHandler::canRead() const
 	return false;
 }
 
+void QPVRHandler::QImageTextureCleanup(void *ptr)
+{
+	auto texturePtr = reinterpret_cast<TexturePtr *>(ptr);
+	delete texturePtr;
+}
+
 bool QPVRHandler::read(QImage *image)
 {
 	if (!ensureScanned())
@@ -142,24 +142,21 @@ bool QPVRHandler::read(QImage *image)
 
 	int width = static_cast<int>(mTexture->getWidth(mipLevel));
 	int height = static_cast<int>(mTexture->getHeight(mipLevel));
-	*image = QImage(width, height, (QImage::Format) mImageFormat);
+	int bytesPerLine = static_cast<int>(
+			mTexture->getDataSize(mipLevel, false, false) /
+			static_cast<quint32>(height));
 
-	auto pvrPtr = reinterpret_cast<char *>(
-			mTexture->getDataPtr(mipLevel, arrayIndex, faceIndex));
-
-	auto widthBytes = width * ((mTexture->getBitsPerPixel() + 7) / 8);
-	auto pvrWidthBytes = mTexture->getDataSize(
-			mipLevel, false, false) / static_cast<quint32>(height);
-
-	for (int y = 0; y < height; y++)
-	{
-		memcpy(image->scanLine(y), pvrPtr, widthBytes);
-		pvrPtr += pvrWidthBytes;
-	}
+	*image = QImage(
+			(const uchar *) mTexture->getDataPtr(
+				mipLevel, arrayIndex, faceIndex),
+			width, height, bytesPerLine,
+			(QImage::Format) mImageFormat,
+			&QPVRHandler::QImageTextureCleanup,
+			new TexturePtr(mTexture));
 
 	if (mScaledSize.isValid() &&
 		!mScaledSize.isNull() &&
-		mScaledSize != QSize(width, height))
+		mScaledSize != image->size())
 	{
 		*image = image->scaled(
 				mScaledSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
@@ -885,14 +882,13 @@ bool QPVRHandler::scanDevice() const
 
 		header.setOrientation((EPVRTOrientation) orientation);
 
-		std::unique_ptr<CPVRTexture> texture(
-			new CPVRTexture(header, tex.getDataPointer()));
+		TexturePtr texture(new CPVRTexture(header, tex.getDataPointer()));
 
 		if ((cvtPixelFormat == pixelFormat &&
 			 newHeader.getColorSpace() == types::ColorSpace::lRGB &&
 			 newHeader.getChannelType() == VariableType::UnsignedByteNorm) ||
 			Transcode(
-				*texture.get(),
+				*texture.data(),
 				cvtPixelFormat.getPixelTypeId(),
 				ePVRTVarTypeUnsignedByteNorm,
 				ePVRTCSpacelRGB,
@@ -901,7 +897,7 @@ bool QPVRHandler::scanDevice() const
 			mFormat |= PVR3;
 			mImageCurrentIndex = 0;
 			mOrientation = orientation;
-			mTexture = texture.release();
+			mTexture = texture;
 			return true;
 		}
 	}

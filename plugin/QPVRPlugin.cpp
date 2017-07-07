@@ -3,7 +3,7 @@
 #include "QPVRHandler.h"
 
 #include <QIODevice>
-#include <QFile>
+#include <QFileDevice>
 
 QImageIOPlugin::Capabilities QPVRPlugin::capabilities(
 	QIODevice *device, const QByteArray &format) const
@@ -14,7 +14,7 @@ QImageIOPlugin::Capabilities QPVRPlugin::capabilities(
 		return Capabilities(CanRead | CanWrite);
 	}
 
-	auto file = dynamic_cast<QFile *>(device);
+	auto file = dynamic_cast<QFileDevice *>(device);
 
 	if (nullptr != file && file->fileName().endsWith(
 			QLatin1String(".pvr.ccz"), Qt::CaseInsensitive) &&

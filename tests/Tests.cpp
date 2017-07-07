@@ -14,7 +14,7 @@
 #include <QtTest>
 #include <QDebug>
 
-struct Tests::Options
+struct PVRTests::Options
 {
 	int compression;
 	int quality;
@@ -26,7 +26,7 @@ struct Tests::Options
 	static const Options OPTIONS[];
 };
 
-const Tests::Options Tests::Options::OPTIONS[] = {
+const PVRTests::Options PVRTests::Options::OPTIONS[] = {
 	{
 		Z_NO_COMPRESSION,
 		-1,
@@ -146,7 +146,7 @@ static const QImage &fetchImage()
 	return image;
 }
 
-void Tests::testInstallation()
+void PVRTests::testInstallation()
 {
 	QList<QList<QByteArray> > supported;
 	supported.append(QImageReader::supportedImageFormats());
@@ -159,7 +159,7 @@ void Tests::testInstallation()
 	}
 }
 
-void Tests::testIO_data()
+void PVRTests::testIO_data()
 {
 	QTest::addColumn<bool>("compressed");
 
@@ -167,7 +167,7 @@ void Tests::testIO_data()
 	QTest::newRow("pvr.ccz") << true;
 }
 
-void Tests::testIO()
+void PVRTests::testIO()
 {
 	QFETCH(bool, compressed);
 
@@ -184,7 +184,8 @@ void Tests::testIO()
 	}
 }
 
-void Tests::testWrite(const Options &options, const QDir &dir, bool compressed)
+void PVRTests::testWrite(
+	const Options &options, const QDir &dir, bool compressed)
 {
 	QImageWriter writer;
 
@@ -209,7 +210,8 @@ void Tests::testWrite(const Options &options, const QDir &dir, bool compressed)
 	QVERIFY(writer.write(fetchImage()));
 }
 
-void Tests::testRead(const Options &options, const QDir &dir, bool compressed)
+void PVRTests::testRead(
+	const Options &options, const QDir &dir, bool compressed)
 {
 	auto &image = fetchImage();
 
@@ -253,7 +255,7 @@ void Tests::testRead(const Options &options, const QDir &dir, bool compressed)
 	QCOMPARE(readImage.format(), options.resultFormat);
 }
 
-QByteArray Tests::getSubType(int ver, const QByteArray &str)
+QByteArray PVRTests::getSubType(int ver, const QByteArray &str)
 {
 	auto subType = QByteArrayLiteral("pvr") +
 		QByteArray().setNum(ver);
@@ -264,7 +266,7 @@ QByteArray Tests::getSubType(int ver, const QByteArray &str)
 	return subType;
 }
 
-QString Tests::filePathForSubType(
+QString PVRTests::filePathForSubType(
 	const QDir &dir, const QByteArray &subType, bool compressed)
 {
 	return dir.filePath(

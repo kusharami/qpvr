@@ -2,13 +2,10 @@
 
 #include <QImageIOHandler>
 #include <QSize>
+#include <QSharedPointer>
 
 #include "PVRAssets/Texture/TextureHeader.h"
-
-namespace pvrtexture
-{
-class CPVRTexture;
-}
+#include "PVRTexture.h"
 
 namespace pvr
 {
@@ -22,7 +19,6 @@ class QPVRHandler : public QImageIOHandler
 {
 public:
 	QPVRHandler();
-	virtual ~QPVRHandler() override;
 
 	enum Format
 	{
@@ -103,7 +99,10 @@ private:
 	quint32 getCurrentArrayIndex() const;
 	quint32 getCurrentFaceIndex() const;
 
-	mutable pvrtexture::CPVRTexture *mTexture;
+	static void QImageTextureCleanup(void *ptr);
+
+	using TexturePtr = QSharedPointer<pvrtexture::CPVRTexture>;
+	mutable TexturePtr mTexture;
 	QSize mScaledSize;
 	int mCompressionRatio;
 	double mQuality;
