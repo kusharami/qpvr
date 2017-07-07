@@ -32,19 +32,11 @@ SOURCES += \
     QPVRHandler.cpp \
     QIODevicePVRAdapter.cpp
 
-include(../thirdparty/qzstream/QZStream.pri)
+THIRDPARTY_PATH = $$_PRO_FILE_PWD_/../thirdparty
 
-macx {
-    LIBS += -L$$_PRO_FILE_PWD_/../thirdparty/PVRTexLib/OSX_x86/Static
-}
+include($$THIRDPARTY_PATH/qzstream/QZStream.pri)
 
-win32 {
-    contains(QMAKE_HOST.arch, x86_64) {
-        LIBS += -L$$_PRO_FILE_PWD_/../thirdparty/PVRTexLib/Windows_x86_64/Static
-    } else {
-        LIBS += -L$$_PRO_FILE_PWD_/../thirdparty/PVRTexLib/Windows_x86_32/Static
-    }
-}
+include(../pvrtexlib.pri)
 
 win32 {
     CONFIG(debug, debug|release) {
@@ -60,7 +52,8 @@ CONFIG(debug, debug|release) {
     CONFIG_DIR = Release
 }
 
-LIBS += -L$$_PRO_FILE_PWD_/../thirdparty/qzstream/build/$$CONFIG_DIR
+LIBS += -L$$PVRTEXLIB_PATH
+LIBS += -L$$THIRDPARTY_PATH/qzstream/build/$$CONFIG_DIR
 LIBS += -L$$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
 LIBS += -lPVRCore -lPVRAssets -lPVRTexLib -lQZStream
 

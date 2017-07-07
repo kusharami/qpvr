@@ -31,14 +31,14 @@ public:
 	virtual size_t getSize() const override;
 
 private:
+	typedef int64_t (QIODevice::*IOOperation)(void *, int64_t);
 	typedef int64_t (QIODevice::*Read)(char *, int64_t);
 	typedef int64_t (QIODevice::*Write)(const char *, int64_t);
-	using Operation = Read;
 
 	bool ioOperation(
 		size_t elementSize, size_t elementCount,
-		char *buffer, size_t &resultCount,
-		Operation op) const;
+		void *buffer, size_t &resultCount,
+		IOOperation op) const;
 
 	QIODevice *mAdaptee;
 	mutable int64_t mOriginalPosition;

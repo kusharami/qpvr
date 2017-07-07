@@ -14,7 +14,10 @@ CONFIG   -= app_bundle
 
 TEMPLATE = app
 
-include(../thirdparty/qzstream/QZStream.pri)
+THIRDPARTY_PATH = $$_PRO_FILE_PWD_/../thirdparty
+
+include($$THIRDPARTY_PATH/qzstream/QZStream.pri)
+include(../deps.pri)
 
 DEFINES += SRCDIR=\\\"$$PWD/\\\"
 

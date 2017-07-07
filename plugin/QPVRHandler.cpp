@@ -179,7 +179,10 @@ static bool imageFormatToPvrPixelType(
 			break;
 
 		case QImage::Format_ARGB32_Premultiplied:
+		{
 			premultiplied = true;
+			// fall through
+		}
 
 		case QImage::Format_ARGB32:
 			pixelType = PixelType('b', 'g', 'r', 'a', 8, 8, 8, 8);
@@ -821,7 +824,10 @@ bool QPVRHandler::scanDevice() const
 				switch (CompressedPixelFormat(pixelFormat.getPixelTypeId()))
 				{
 					case CompressedPixelFormat::PVRTCII_2bpp:
+					{
 						mFormat |= TEXV2;
+						// fall through
+					}
 
 					case CompressedPixelFormat::PVRTCI_2bpp_RGBA:
 					case CompressedPixelFormat::PVRTCI_2bpp_RGB:
@@ -829,7 +835,10 @@ bool QPVRHandler::scanDevice() const
 						break;
 
 					case CompressedPixelFormat::PVRTCII_4bpp:
+					{
 						mFormat |= TEXV2;
+						// fall through
+					}
 
 					case CompressedPixelFormat::PVRTCI_4bpp_RGBA:
 					case CompressedPixelFormat::PVRTCI_4bpp_RGB:
@@ -838,7 +847,10 @@ bool QPVRHandler::scanDevice() const
 
 					case CompressedPixelFormat::ETC2_RGBA:
 					case CompressedPixelFormat::ETC2_RGB_A1:
+					{
 						mFormat |= TEXV2;
+						// fall through
+					}
 
 					case CompressedPixelFormat::ETC1:
 						mFormat |= ETC;
@@ -984,8 +996,8 @@ quint32 QPVRHandler::getCurrentMipLevel() const
 
 	for (auto level = PVRTEX_TOPMIPLEVEL; level < lastMipLevel; level++)
 	{
-		if (mTexture->getWidth(level) == mScaledSize.width() &&
-			mTexture->getHeight(level) == mScaledSize.height())
+		if (mTexture->getWidth(level) == uint(mScaledSize.width()) &&
+			mTexture->getHeight(level) == uint(mScaledSize.height()))
 		{
 			return level;
 		}
