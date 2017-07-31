@@ -16,3 +16,7 @@ win32 {
         copy /y \"$$shell_path($$PVRTEXLIB_PATH/PVRTexLib.dll)\" \
         \"$$shell_path($$BIN_DIR)\"
 }
+
+macx {
+    DYNAMIC_LIBS.files += $$PVRTEXLIB_PATH/libPVRTexLib.dylib
+}

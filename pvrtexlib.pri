@@ -3,7 +3,7 @@ isEmpty(PVRTEXLIB_PATH) {
 }
 
 macx {
-    PVRTEXLIB_PATH = $$PVRTEXLIB_PATH/OSX_x86/Static
+    PVRTEXLIB_PATH = $$PVRTEXLIB_PATH/OSX_x86/Dynamic
 }
 
 win32 {
