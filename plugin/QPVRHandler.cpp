@@ -62,7 +62,6 @@ QPVRHandler::QPVRHandler()
 	, mImageCurrentIndex(-1)
 	, mScanned(false)
 {
-
 }
 
 QPVRHandler::Format QPVRHandler::detectFileFormat(QIODevice *device)
@@ -77,6 +76,7 @@ QPVRHandler::Format QPVRHandler::detectFileFormat(QIODevice *device)
 	{
 		bool ccz = false;
 		QCCZDecompressionStream decompressor(origDevice);
+
 		if (decompressor.open())
 		{
 			device = &decompressor;
@@ -106,6 +106,7 @@ bool QPVRHandler::canRead() const
 
 	mFormat = detectFileFormat(device());
 	Q_ASSERT(0 == (mFormat & ~FileFormatMask));
+
 	switch (mFormat)
 	{
 		case PVR:
@@ -140,17 +141,17 @@ bool QPVRHandler::read(QImage *image)
 	quint32 arrayIndex = getCurrentArrayIndex();
 	quint32 faceIndex = getCurrentFaceIndex();
 
-	int width = static_cast<int>(mTexture->getWidth(mipLevel));
-	int height = static_cast<int>(mTexture->getHeight(mipLevel));
-	int bytesPerLine = static_cast<int>(
+	int width = int(mTexture->getWidth(mipLevel));
+	int height = int(mTexture->getHeight(mipLevel));
+	int bytesPerLine = int(
 			mTexture->getDataSize(mipLevel, false, false) /
-			static_cast<quint32>(height));
+			quint32(height));
 
 	*image = QImage(
 			(const uchar *) mTexture->getDataPtr(
 				mipLevel, arrayIndex, faceIndex),
 			width, height, bytesPerLine,
-			(QImage::Format) mImageFormat,
+			QImage::Format(mImageFormat),
 			&QPVRHandler::QImageTextureCleanup,
 			new TexturePtr(mTexture));
 
@@ -179,7 +180,10 @@ static bool imageFormatToPvrPixelType(
 			break;
 
 		case QImage::Format_ARGB32_Premultiplied:
+		{
 			premultiplied = true;
+			// fall through
+		}
 
 		case QImage::Format_ARGB32:
 			pixelType = PixelType('b', 'g', 'r', 'a', 8, 8, 8, 8);
@@ -249,10 +253,12 @@ bool QPVRHandler::write(const QImage &image)
 	PixelType pixelType;
 	bool isPremultiplied = false;
 	QImage img = image;
+
 	if (!imageFormatToPvrPixelType(
 			image.format(), &pixelType, &isPremultiplied))
 	{
 		img = image.convertToFormat(QImage::Format_RGB888);
+
 		if (!imageFormatToPvrPixelType(
 				img.format(), &pixelType, &isPremultiplied))
 			return false;
@@ -274,12 +280,13 @@ bool QPVRHandler::write(const QImage &image)
 
 	header.setOrientation((EPVRTOrientation) mOrientation);
 
-	auto widthBytes = img.width() * pixelSize;
-	QByteArray data(
-		static_cast<int>(
-			header.getDataSize(PVRTEX_TOPMIPLEVEL, false, false)), 0);
-	auto pvrWidthBytes = data.size() / img.height();
-	auto pvrPtr = data.data();
+	CPVRTexture texture(header);
+
+	int widthBytes = img.width() * pixelSize;
+	int pvrWidthBytes = int(
+			header.getDataSize(
+				PVRTEX_TOPMIPLEVEL, false, false)) / quint32(img.height());
+	auto pvrPtr = reinterpret_cast<char *>(texture.getDataPtr());
 
 	for (int y = 0; y < height; y++)
 	{
@@ -289,13 +296,12 @@ bool QPVRHandler::write(const QImage &image)
 
 	img = QImage();
 
-	CPVRTexture texture(header, data.data());
-
 	bool texV2 = 0 != (mFormat & TEXV2);
 	bool tex4bpp = 0 != (mFormat & TEXBIT4);
 
 	PixelType outputPixelType = pixelType;
 	ECompressorQuality quality = ePVRTCFastest;
+
 	if (0 != (mFormat & ETC))
 	{
 		if (texV2)
@@ -395,7 +401,7 @@ QVariant QPVRHandler::option(ImageOption option) const
 				return mScaledSize;
 
 			case Quality:
-				return static_cast<int>(mQuality * 100);
+				return int(mQuality * 100);
 
 			case ImageFormat:
 				ensureScanned();
@@ -406,6 +412,7 @@ QVariant QPVRHandler::option(ImageOption option) const
 				ensureScanned();
 
 				Transformations t;
+
 				if (ePVRTOrientLeft == (ePVRTOrientLeft & mOrientation))
 				{
 					t |= TransformationMirror;
@@ -430,11 +437,13 @@ QVariant QPVRHandler::option(ImageOption option) const
 void QPVRHandler::setOption(ImageOption option, const QVariant &value)
 {
 	bool ok = false;
+
 	switch (option)
 	{
 		case SubType:
 		{
 			int format = value.toInt(&ok);
+
 			if (!ok)
 				format = stringToFormat(value.toString().toLatin1());
 
@@ -455,6 +464,7 @@ void QPVRHandler::setOption(ImageOption option, const QVariant &value)
 		case CompressionRatio:
 		{
 			int r = value.toInt(&ok);
+
 			if (!ok || r < 0)
 				r = Z_DEFAULT_COMPRESSION;
 
@@ -469,6 +479,7 @@ void QPVRHandler::setOption(ImageOption option, const QVariant &value)
 		case Quality:
 		{
 			int q = value.toInt(&ok);
+
 			if (!ok || q < 0 || q > 100)
 				q = 100;
 
@@ -552,6 +563,7 @@ bool QPVRHandler::jumpToNextImage()
 bool QPVRHandler::pvrPixelTypeHasAlpha(quint64 pixelTypeId)
 {
 	PixelFormat pixelFormat(pixelTypeId);
+
 	if (pixelFormat.isCompressedFormat())
 	{
 		switch (CompressedPixelFormat(pixelTypeId))
@@ -628,6 +640,7 @@ int QPVRHandler::stringToFormat(const QByteArray &str)
 	{
 		int skip;
 		int suffix;
+
 		if (s.startsWith(s_pvrtc))
 		{
 			result |= PVRTC;
@@ -723,6 +736,7 @@ QByteArray QPVRHandler::formatToString(int format)
 	if (compressed)
 	{
 		result += (0 != (format & TEXV2)) ? '2' : '1';
+
 		if (!isETC)
 		{
 			result += '_';
@@ -773,10 +787,12 @@ bool QPVRHandler::scanDevice() const
 
 	auto device = this->device();
 	std::unique_ptr<QCCZDecompressionStream> decompress;
+
 	if (0 != (mFormat & CCZ))
 	{
 		decompress.reset(new QCCZDecompressionStream(device));
 		device = decompress.get();
+
 		if (!device->open(QIODevice::ReadOnly))
 		{
 			return false;
@@ -821,7 +837,10 @@ bool QPVRHandler::scanDevice() const
 				switch (CompressedPixelFormat(pixelFormat.getPixelTypeId()))
 				{
 					case CompressedPixelFormat::PVRTCII_2bpp:
+					{
 						mFormat |= TEXV2;
+						// fall through
+					}
 
 					case CompressedPixelFormat::PVRTCI_2bpp_RGBA:
 					case CompressedPixelFormat::PVRTCI_2bpp_RGB:
@@ -829,7 +848,10 @@ bool QPVRHandler::scanDevice() const
 						break;
 
 					case CompressedPixelFormat::PVRTCII_4bpp:
+					{
 						mFormat |= TEXV2;
+						// fall through
+					}
 
 					case CompressedPixelFormat::PVRTCI_4bpp_RGBA:
 					case CompressedPixelFormat::PVRTCI_4bpp_RGB:
@@ -838,7 +860,10 @@ bool QPVRHandler::scanDevice() const
 
 					case CompressedPixelFormat::ETC2_RGBA:
 					case CompressedPixelFormat::ETC2_RGB_A1:
+					{
 						mFormat |= TEXV2;
+						// fall through
+					}
 
 					case CompressedPixelFormat::ETC1:
 						mFormat |= ETC;
@@ -926,12 +951,14 @@ bool QPVRHandler::writeTexture(const Texture &texture)
 
 	auto device = this->device();
 	std::unique_ptr<QCCZCompressionStream> compress;
+
 	if (0 != (mFormat & CCZ))
 	{
 		compress.reset(
 			new QCCZCompressionStream(device, mCompressionRatio));
 
 		device = compress.get();
+
 		if (!device->open(QIODevice::WriteOnly))
 		{
 			return false;
@@ -962,13 +989,15 @@ bool QPVRHandler::writeTexture(const CPVRTexture &texture)
 						 oldHeader.getNumArrayMembers(),
 						 oldHeader.getNumFaces());
 	header.setOrientation(
-		static_cast<TextureMetaData::AxisOrientation>(
+		TextureMetaData::AxisOrientation(
 			oldHeader.getOrientation(ePVRTAxisX) |
 			oldHeader.getOrientation(ePVRTAxisY) |
 			oldHeader.getOrientation(ePVRTAxisZ)));
 	auto cubeMapOrder = oldHeader.getCubeMapOrder();
+
 	if (!cubeMapOrder.empty())
 		header.setCubeMapOrder(cubeMapOrder.c_str());
+
 	header.setIsPreMultiplied(oldHeader.isPreMultiplied());
 
 	return writeTexture(Texture(header, (const quint8 *) texture.getDataPtr()));
@@ -984,8 +1013,8 @@ quint32 QPVRHandler::getCurrentMipLevel() const
 
 	for (auto level = PVRTEX_TOPMIPLEVEL; level < lastMipLevel; level++)
 	{
-		if (mTexture->getWidth(level) == mScaledSize.width() &&
-			mTexture->getHeight(level) == mScaledSize.height())
+		if (mTexture->getWidth(level) == uint(mScaledSize.width()) &&
+			mTexture->getHeight(level) == uint(mScaledSize.height()))
 		{
 			return level;
 		}
@@ -996,14 +1025,14 @@ quint32 QPVRHandler::getCurrentMipLevel() const
 
 quint32 QPVRHandler::getCurrentArrayIndex() const
 {
-	quint32 curIndex = static_cast<quint32>(mImageCurrentIndex);
+	quint32 curIndex = quint32(mImageCurrentIndex);
 	quint32 numFaces = mTexture->getNumFaces();
 	return curIndex / numFaces;
 }
 
 quint32 QPVRHandler::getCurrentFaceIndex() const
 {
-	quint32 curIndex = static_cast<quint32>(mImageCurrentIndex);
+	quint32 curIndex = quint32(mImageCurrentIndex);
 	quint32 numFaces = mTexture->getNumFaces();
 	return curIndex % numFaces;
 }

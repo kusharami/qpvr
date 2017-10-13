@@ -223,9 +223,13 @@ void PVRTests::testRead(
 	QVERIFY(reader.canRead());
 	checkSupportedOptions(reader);
 
-#if QT_VERSION > QT_VERSION_CHECK(5, 8, 0)
-	// Call when Qt bug fixed
-	QCOMPARE(reader.supportedSubTypes(), supportedSubTypes);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 1)
+	// QImageReader::supportedSubTypes always empty in previous versions
+	{
+		QImageWriter writer;
+		writer.setFormat(QByteArrayLiteral("pvr"));
+		QCOMPARE(reader.supportedSubTypes(), writer.supportedSubTypes());
+	}
 #endif
 	QCOMPARE(reader.imageFormat(), options.resultFormat);
 	QCOMPARE(reader.size(), image.size());

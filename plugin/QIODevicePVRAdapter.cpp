@@ -6,7 +6,7 @@
 
 using namespace pvr;
 
-static inline qint64 sizeToInt64(size_t size)
+Q_DECL_CONSTEXPR static inline qint64 sizeToInt64(size_t size)
 {
 	return static_cast<qint64>(
 		qMin(
@@ -46,8 +46,8 @@ bool QIODevicePVRAdapter::read(
 
 	return ioOperation(
 		elementSize, elementCount,
-		(char *) buffer, elementsRead,
-		&QIODevice::read);
+		buffer, elementsRead,
+		reinterpret_cast<IOOperation>(static_cast<Read>(&QIODevice::read)));
 }
 
 bool QIODevicePVRAdapter::write(
@@ -59,8 +59,8 @@ bool QIODevicePVRAdapter::write(
 
 	return ioOperation(
 		elementSize, elementCount,
-		(char *) buffer, elementsWritten,
-		(Operation) static_cast<Write>(&QIODevice::write));
+		const_cast<void *>(buffer), elementsWritten,
+		reinterpret_cast<IOOperation>(static_cast<Write>(&QIODevice::write)));
 }
 
 bool QIODevicePVRAdapter::seek(long offset, SeekOrigin origin) const
@@ -132,8 +132,7 @@ size_t QIODevicePVRAdapter::getSize() const
 
 bool QIODevicePVRAdapter::ioOperation(
 	size_t elementSize, size_t elementCount,
-	char *buffer, size_t &resultCount,
-	Operation op) const
+	void *buffer, size_t &resultCount, IOOperation op) const
 {
 	if (!isopen())
 		return false;
