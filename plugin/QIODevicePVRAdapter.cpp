@@ -8,18 +8,13 @@ using namespace pvr;
 
 Q_DECL_CONSTEXPR static inline qint64 sizeToInt64(size_t size)
 {
-	return static_cast<qint64>(
-		qMin(
-			size,
-			static_cast<size_t>(
-				(sizeof(size_t) < 8)
-				? static_cast<qint64>(
-					std::numeric_limits<size_t>::max())
-				: std::numeric_limits<qint64>::max())));
+	return qint64(qMin(size,
+		size_t((sizeof(size_t) < 8) ? qint64(std::numeric_limits<size_t>::max())
+									: std::numeric_limits<qint64>::max())));
 }
 
 QIODevicePVRAdapter::QIODevicePVRAdapter(QIODevice *adaptee)
-	: Stream("")
+	: Stream(std::string())
 	, mAdaptee(adaptee)
 	, mOriginalPosition(0)
 	, mIsOpen(false)
@@ -28,8 +23,8 @@ QIODevicePVRAdapter::QIODevicePVRAdapter(QIODevice *adaptee)
 	Q_ASSERT(nullptr != mAdaptee);
 	Q_ASSERT(mAdaptee->isOpen());
 
-	m_isReadable = mAdaptee->isReadable();
-	m_isWritable = mAdaptee->isWritable();
+	_isReadable = mAdaptee->isReadable();
+	_isWritable = mAdaptee->isWritable();
 }
 
 QIODevicePVRAdapter::~QIODevicePVRAdapter()
@@ -37,29 +32,24 @@ QIODevicePVRAdapter::~QIODevicePVRAdapter()
 	close();
 }
 
-bool QIODevicePVRAdapter::read(
-	size_t elementSize, size_t elementCount,
+bool QIODevicePVRAdapter::read(size_t elementSize, size_t elementCount,
 	void *buffer, size_t &elementsRead) const
 {
 	if (!isReadable())
 		return false;
 
-	return ioOperation(
-		elementSize, elementCount,
-		buffer, elementsRead,
+	return ioOperation(elementSize, elementCount, buffer, elementsRead,
 		reinterpret_cast<IOOperation>(static_cast<Read>(&QIODevice::read)));
 }
 
-bool QIODevicePVRAdapter::write(
-	size_t elementSize, size_t elementCount,
+bool QIODevicePVRAdapter::write(size_t elementSize, size_t elementCount,
 	const void *buffer, size_t &elementsWritten)
 {
 	if (!isWritable())
 		return false;
 
-	return ioOperation(
-		elementSize, elementCount,
-		const_cast<void *>(buffer), elementsWritten,
+	return ioOperation(elementSize, elementCount, const_cast<void *>(buffer),
+		elementsWritten,
 		reinterpret_cast<IOOperation>(static_cast<Write>(&QIODevice::write)));
 }
 
@@ -91,11 +81,13 @@ bool QIODevicePVRAdapter::open() const
 	Q_ASSERT(mAdaptee->isOpen());
 
 	mIsOpen = true;
+
 	if (!mAdaptee->isTransactionStarted())
 	{
 		mTransactionStarted = true;
 		mAdaptee->startTransaction();
 	}
+
 	mOriginalPosition = mAdaptee->pos();
 	return true;
 }
@@ -104,8 +96,8 @@ void QIODevicePVRAdapter::close()
 {
 	if (mIsOpen)
 	{
-
 		mIsOpen = false;
+
 		if (mTransactionStarted)
 		{
 			mTransactionStarted = false;
@@ -130,8 +122,7 @@ size_t QIODevicePVRAdapter::getSize() const
 	return static_cast<size_t>(mAdaptee->size() - mOriginalPosition);
 }
 
-bool QIODevicePVRAdapter::ioOperation(
-	size_t elementSize, size_t elementCount,
+bool QIODevicePVRAdapter::ioOperation(size_t elementSize, size_t elementCount,
 	void *buffer, size_t &resultCount, IOOperation op) const
 {
 	if (!isopen())
