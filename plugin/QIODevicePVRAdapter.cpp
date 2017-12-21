@@ -8,10 +8,9 @@ using namespace pvr;
 
 Q_DECL_CONSTEXPR static inline qint64 sizeToInt64(size_t size)
 {
-	return static_cast<qint64>(qMin(size,
-		static_cast<size_t>((sizeof(size_t) < 8)
-				? static_cast<qint64>(std::numeric_limits<size_t>::max())
-				: std::numeric_limits<qint64>::max())));
+	return qint64(qMin(size,
+		size_t((sizeof(size_t) < 8) ? qint64(std::numeric_limits<size_t>::max())
+									: std::numeric_limits<qint64>::max())));
 }
 
 QIODevicePVRAdapter::QIODevicePVRAdapter(QIODevice *adaptee)
@@ -24,8 +23,8 @@ QIODevicePVRAdapter::QIODevicePVRAdapter(QIODevice *adaptee)
 	Q_ASSERT(nullptr != mAdaptee);
 	Q_ASSERT(mAdaptee->isOpen());
 
-	m_isReadable = mAdaptee->isReadable();
-	m_isWritable = mAdaptee->isWritable();
+	_isReadable = mAdaptee->isReadable();
+	_isWritable = mAdaptee->isWritable();
 }
 
 QIODevicePVRAdapter::~QIODevicePVRAdapter()
@@ -82,11 +81,13 @@ bool QIODevicePVRAdapter::open() const
 	Q_ASSERT(mAdaptee->isOpen());
 
 	mIsOpen = true;
+
 	if (!mAdaptee->isTransactionStarted())
 	{
 		mTransactionStarted = true;
 		mAdaptee->startTransaction();
 	}
+
 	mOriginalPosition = mAdaptee->pos();
 	return true;
 }
@@ -96,6 +97,7 @@ void QIODevicePVRAdapter::close()
 	if (mIsOpen)
 	{
 		mIsOpen = false;
+
 		if (mTransactionStarted)
 		{
 			mTransactionStarted = false;

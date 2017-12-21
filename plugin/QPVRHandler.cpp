@@ -3,7 +3,7 @@
 #include <QVariant>
 #include <QImage>
 
-#include "PVRAssets/Texture/Texture.h"
+#include "PVRCore/Texture.h"
 #include "PVRAssets/FileIO/TextureReaderPVR.h"
 #include "PVRAssets/FileIO/TextureWriterPVR.h"
 #include "PVRAssets/FileIO/TextureWriterLegacyPVR.h"
@@ -18,7 +18,7 @@
 #include "QCCZStream.h"
 #undef compress
 
-static const int SUPPORTED_FORMATS[] = { //
+static const int SUPPORTED_FORMATS[] = {
 	QPVRHandler::PVR2, //
 	QPVRHandler::PVR3, //
 	QPVRHandler::PVR2_CCZ, //
@@ -44,7 +44,7 @@ static const int SUPPORTED_FORMATS[] = { //
 	QPVRHandler::PVR3_PVRTC2_4_CCZ, //
 	QPVRHandler::PVR2_ETC1_CCZ, //
 	QPVRHandler::PVR3_ETC1_CCZ, //
-	QPVRHandler::PVR3_ETC2_CCZ
+	QPVRHandler::PVR3_ETC2_CCZ, //
 };
 
 using namespace pvrtexture;
@@ -345,17 +345,14 @@ bool QPVRHandler::write(const QImage &image)
 		{
 			outputPixelType =
 				tex4bpp ? ePVRTPF_PVRTCII_4bpp : ePVRTPF_PVRTCII_2bpp;
+		} else if (pvrPixelTypeHasAlpha(outputPixelType.PixelTypeID))
+		{
+			outputPixelType =
+				tex4bpp ? ePVRTPF_PVRTCI_4bpp_RGBA : ePVRTPF_PVRTCI_2bpp_RGBA;
 		} else
 		{
-			if (pvrPixelTypeHasAlpha(outputPixelType.PixelTypeID))
-			{
-				outputPixelType = tex4bpp ? ePVRTPF_PVRTCI_4bpp_RGBA
-										  : ePVRTPF_PVRTCI_2bpp_RGBA;
-			} else
-			{
-				outputPixelType =
-					tex4bpp ? ePVRTPF_PVRTCI_4bpp_RGB : ePVRTPF_PVRTCI_2bpp_RGB;
-			}
+			outputPixelType =
+				tex4bpp ? ePVRTPF_PVRTCI_4bpp_RGB : ePVRTPF_PVRTCI_2bpp_RGB;
 		}
 
 		quality = ECompressorQuality(int(mQuality * (int(eNumPVRTCModes) - 1)));
@@ -816,12 +813,10 @@ bool QPVRHandler::scanDevice() const
 
 	if (readOk)
 	{
-		auto &newHeader = tex.getHeader();
-
-		auto pixelFormat = newHeader.getPixelFormat();
+		auto pixelFormat = tex.getPixelFormat();
 		PixelFormat cvtPixelFormat;
 
-		bool isPremultiplied = newHeader.isPreMultiplied();
+		bool isPremultiplied = tex.isPreMultiplied();
 
 		mFormat &= FileFormatMask;
 
@@ -894,27 +889,26 @@ bool QPVRHandler::scanDevice() const
 			}
 		}
 
-		CPVRTextureHeader header(pixelFormat.getPixelTypeId(),
-			newHeader.getHeight(), newHeader.getWidth(), newHeader.getDepth(),
-			newHeader.getNumberOfMIPLevels(),
-			newHeader.getNumberOfArrayMembers(), newHeader.getNumberOfFaces(),
-			(EPVRTColourSpace) newHeader.getColorSpace(),
-			(EPVRTVariableType) newHeader.getChannelType(), isPremultiplied);
+		CPVRTextureHeader header(pixelFormat.getPixelTypeId(), tex.getHeight(),
+			tex.getWidth(), tex.getDepth(), tex.getNumberOfMIPLevels(),
+			tex.getNumberOfArrayMembers(), tex.getNumberOfFaces(),
+			(EPVRTColourSpace) tex.getColorSpace(),
+			(EPVRTVariableType) tex.getChannelType(), isPremultiplied);
 
-		int orientation = newHeader.getOrientation(TextureMetaData::AxisAxisX) |
-			newHeader.getOrientation(TextureMetaData::AxisAxisY) |
-			newHeader.getOrientation(TextureMetaData::AxisAxisZ);
+		int orientation = tex.getOrientation(TextureMetaData::AxisAxisX) |
+			tex.getOrientation(TextureMetaData::AxisAxisY) |
+			tex.getOrientation(TextureMetaData::AxisAxisZ);
 
 		header.setOrientation((EPVRTOrientation) orientation);
 
 		TexturePtr texture(new CPVRTexture(header, tex.getDataPointer()));
 
 		if ((cvtPixelFormat == pixelFormat &&
-				newHeader.getColorSpace() == types::ColorSpace::lRGB &&
-				newHeader.getChannelType() == VariableType::UnsignedByteNorm) ||
+				tex.getColorSpace() == types::ColorSpace::lRGB &&
+				tex.getChannelType() == VariableType::UnsignedByteNorm) ||
 			Transcode(*texture.data(), cvtPixelFormat.getPixelTypeId(),
 				ePVRTVarTypeUnsignedByteNorm, ePVRTCSpacelRGB,
-				(ECompressorQuality) 0))
+				ECompressorQuality(0)))
 		{
 			mFormat |= PVR3;
 			mImageCurrentIndex = 0;
@@ -976,11 +970,12 @@ bool QPVRHandler::writeTexture(const CPVRTexture &texture)
 	auto &oldHeader = texture.getHeader();
 
 	TextureHeader header(oldHeader.getPixelType().PixelTypeID,
-		oldHeader.getHeight(), oldHeader.getWidth(), oldHeader.getDepth(),
+		oldHeader.getWidth(), oldHeader.getHeight(), oldHeader.getDepth(),
 		oldHeader.getNumMIPLevels(),
-		(types::ColorSpace) oldHeader.getColourSpace(),
-		(VariableType) oldHeader.getChannelType(),
+		types::ColorSpace(oldHeader.getColourSpace()),
+		VariableType(oldHeader.getChannelType()),
 		oldHeader.getNumArrayMembers(), oldHeader.getNumFaces());
+
 	header.setOrientation(
 		TextureMetaData::AxisOrientation(oldHeader.getOrientation(ePVRTAxisX) |
 			oldHeader.getOrientation(ePVRTAxisY) |

@@ -23,7 +23,9 @@ QImageIOPlugin::Capabilities QPVRPlugin::capabilities(
 	{
 		// detected pvr.ccz
 	} else if (!format.isEmpty())
+	{
 		return 0;
+	}
 
 	if (nullptr == device || !device->isOpen())
 		return 0;
