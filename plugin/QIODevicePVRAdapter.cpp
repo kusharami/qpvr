@@ -8,18 +8,14 @@ using namespace pvr;
 
 Q_DECL_CONSTEXPR static inline qint64 sizeToInt64(size_t size)
 {
-	return static_cast<qint64>(
-		qMin(
-			size,
-			static_cast<size_t>(
-				(sizeof(size_t) < 8)
-				? static_cast<qint64>(
-					std::numeric_limits<size_t>::max())
+	return static_cast<qint64>(qMin(size,
+		static_cast<size_t>((sizeof(size_t) < 8)
+				? static_cast<qint64>(std::numeric_limits<size_t>::max())
 				: std::numeric_limits<qint64>::max())));
 }
 
 QIODevicePVRAdapter::QIODevicePVRAdapter(QIODevice *adaptee)
-	: Stream("")
+	: Stream(std::string())
 	, mAdaptee(adaptee)
 	, mOriginalPosition(0)
 	, mIsOpen(false)
@@ -37,29 +33,24 @@ QIODevicePVRAdapter::~QIODevicePVRAdapter()
 	close();
 }
 
-bool QIODevicePVRAdapter::read(
-	size_t elementSize, size_t elementCount,
+bool QIODevicePVRAdapter::read(size_t elementSize, size_t elementCount,
 	void *buffer, size_t &elementsRead) const
 {
 	if (!isReadable())
 		return false;
 
-	return ioOperation(
-		elementSize, elementCount,
-		buffer, elementsRead,
+	return ioOperation(elementSize, elementCount, buffer, elementsRead,
 		reinterpret_cast<IOOperation>(static_cast<Read>(&QIODevice::read)));
 }
 
-bool QIODevicePVRAdapter::write(
-	size_t elementSize, size_t elementCount,
+bool QIODevicePVRAdapter::write(size_t elementSize, size_t elementCount,
 	const void *buffer, size_t &elementsWritten)
 {
 	if (!isWritable())
 		return false;
 
-	return ioOperation(
-		elementSize, elementCount,
-		const_cast<void *>(buffer), elementsWritten,
+	return ioOperation(elementSize, elementCount, const_cast<void *>(buffer),
+		elementsWritten,
 		reinterpret_cast<IOOperation>(static_cast<Write>(&QIODevice::write)));
 }
 
@@ -104,7 +95,6 @@ void QIODevicePVRAdapter::close()
 {
 	if (mIsOpen)
 	{
-
 		mIsOpen = false;
 		if (mTransactionStarted)
 		{
@@ -130,8 +120,7 @@ size_t QIODevicePVRAdapter::getSize() const
 	return static_cast<size_t>(mAdaptee->size() - mOriginalPosition);
 }
 
-bool QIODevicePVRAdapter::ioOperation(
-	size_t elementSize, size_t elementCount,
+bool QIODevicePVRAdapter::ioOperation(size_t elementSize, size_t elementCount,
 	void *buffer, size_t &resultCount, IOOperation op) const
 {
 	if (!isopen())

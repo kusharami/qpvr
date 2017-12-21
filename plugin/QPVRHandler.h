@@ -83,6 +83,9 @@ public:
 	virtual bool jumpToImage(int imageNumber) override;
 	virtual bool jumpToNextImage() override;
 
+	static QByteArray PVR_Format();
+	static QByteArray PVR_CCZ_Format();
+
 private:
 	static bool pvrPixelTypeHasAlpha(quint64 pixelTypeId);
 
