@@ -1,4 +1,4 @@
-VERSION = 1.0.3
+VERSION = 1.0.4
 
 TARGET = qpvr
 
@@ -51,6 +51,16 @@ CONFIG(debug, debug|release) {
 } else {
     CONFIG_DIR = Release
 }
+
+win32:PRE_TARGETDEPS += \
+    $$THIRDPARTY_PATH/qzstream/build/$$CONFIG_DIR/QZStream.lib \
+    $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR/PVRCore.lib \
+    $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR/PVRAssets.lib
+
+macx:PRE_TARGETDEPS += \
+    $$THIRDPARTY_PATH/qzstream/build/$$CONFIG_DIR/libQZStream.a \
+    $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR/libPVRCore.a \
+    $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR/libPVRAssets.a
 
 LIBS += -L$$PVRTEXLIB_PATH
 LIBS += -L$$THIRDPARTY_PATH/qzstream/build/$$CONFIG_DIR

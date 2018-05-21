@@ -44,7 +44,7 @@ static const int SUPPORTED_FORMATS[] = {
 	QPVRHandler::PVR3_PVRTC2_4_CCZ, //
 	QPVRHandler::PVR2_ETC1_CCZ, //
 	QPVRHandler::PVR3_ETC1_CCZ, //
-	QPVRHandler::PVR3_ETC2_CCZ //
+	QPVRHandler::PVR3_ETC2_CCZ, //
 };
 
 using namespace pvrtexture;
@@ -99,6 +99,16 @@ QPVRHandler::Format QPVRHandler::detectFileFormat(QIODevice *device)
 	return result;
 }
 
+QByteArray QPVRHandler::PVR_Format()
+{
+	return QByteArrayLiteral("pvr");
+}
+
+QByteArray QPVRHandler::PVR_CCZ_Format()
+{
+	return QByteArrayLiteral("pvr.ccz");
+}
+
 bool QPVRHandler::canRead() const
 {
 	if (nullptr != mTexture)
@@ -110,11 +120,11 @@ bool QPVRHandler::canRead() const
 	switch (mFormat)
 	{
 		case PVR:
-			setFormat(QByteArrayLiteral("pvr"));
+			setFormat(PVR_Format());
 			return true;
 
 		case PVR_CCZ:
-			setFormat(QByteArrayLiteral("pvr.ccz"));
+			setFormat(PVR_CCZ_Format());
 			return true;
 
 		default:
@@ -246,6 +256,13 @@ static bool imageFormatToPvrPixelType(
 
 bool QPVRHandler::write(const QImage &image)
 {
+	if (mFormat == UnknownFormat)
+	{
+		mFormat = PVR3;
+		if (format() == PVR_CCZ_Format())
+			mFormat |= CCZ;
+	}
+
 	PixelType pixelType;
 	bool isPremultiplied = false;
 	QImage img = image;
@@ -368,7 +385,10 @@ QVariant QPVRHandler::option(ImageOption option) const
 			}
 
 			case CompressionRatio:
-				return mCompressionRatio;
+				if (mCompressionRatio < 0)
+					return Z_DEFAULT_COMPRESSION;
+
+				return (100 * mCompressionRatio) / Z_BEST_COMPRESSION;
 
 			case Size:
 			{
@@ -446,10 +466,15 @@ void QPVRHandler::setOption(ImageOption option, const QVariant &value)
 		{
 			int r = value.toInt(&ok);
 
-			if (!ok || r < 0)
-				r = Z_DEFAULT_COMPRESSION;
-
-			mCompressionRatio = r;
+			if (!ok || r <= 0)
+			{
+				mCompressionRatio = Z_DEFAULT_COMPRESSION;
+			} else
+			{
+				if (r > 100)
+					r = 100;
+				mCompressionRatio = (Z_BEST_COMPRESSION * r) / 100;
+			}
 			break;
 		}
 
@@ -945,7 +970,7 @@ bool QPVRHandler::writeTexture(const CPVRTexture &texture)
 	auto &oldHeader = texture.getHeader();
 
 	TextureHeader header(oldHeader.getPixelType().PixelTypeID,
-		oldHeader.getHeight(), oldHeader.getWidth(), oldHeader.getDepth(),
+		oldHeader.getWidth(), oldHeader.getHeight(), oldHeader.getDepth(),
 		oldHeader.getNumMIPLevels(),
 		types::ColorSpace(oldHeader.getColourSpace()),
 		VariableType(oldHeader.getChannelType()),

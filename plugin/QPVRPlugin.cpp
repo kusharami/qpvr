@@ -8,8 +8,8 @@
 QImageIOPlugin::Capabilities QPVRPlugin::capabilities(
 	QIODevice *device, const QByteArray &format) const
 {
-	if (0 == strcmp(format.data(), "pvr") ||
-		0 == strcmp(format.data(), "pvr.ccz"))
+	if (format == QPVRHandler::PVR_Format() ||
+		format == QPVRHandler::PVR_CCZ_Format())
 	{
 		return Capabilities(CanRead | CanWrite);
 	}
@@ -53,7 +53,7 @@ QImageIOHandler *QPVRPlugin::create(
 	handler->setDevice(device);
 
 	handler->setFormat((0 == strcmp(format.data(), "ccz"))
-			? QByteArrayLiteral("pvr.ccz")
+			? QPVRHandler::PVR_CCZ_Format()
 			: format);
 	return handler;
 }
