@@ -27,78 +27,24 @@ struct PVRTests::Options
 };
 
 const PVRTests::Options PVRTests::Options::OPTIONS[] = {
-	{
-		Z_NO_COMPRESSION,
-		-1,
-		2,
-		QByteArray(),
-		QImageIOHandler::TransformationNone,
-		QImage::Format_RGBA8888
-	},
-	{
-		Z_NO_COMPRESSION,
-		-1,
-		2,
-		QByteArray(),
-		QImageIOHandler::TransformationFlip,
-		QImage::Format_RGBA8888
-	},
-	{
-		Z_NO_COMPRESSION,
-		-1,
-		3,
-		QByteArray(),
-		QImageIOHandler::TransformationMirror,
-		QImage::Format_RGBA8888
-	},
-	{
-		Z_DEFAULT_COMPRESSION,
-		80,
-		2,
-		QByteArrayLiteral("pvrtc2_2"),
-		QImageIOHandler::TransformationNone,
-		QImage::Format_RGBA8888
-	},
-	{
-		Z_NO_COMPRESSION,
-		50,
-		2,
-		QByteArrayLiteral("pvrtc2_4"),
-		QImageIOHandler::TransformationFlip,
-		QImage::Format_RGBA8888
-	},
-	{
-		Z_BEST_COMPRESSION,
-		0,
-		3,
-		QByteArrayLiteral("pvrtc1_2"),
-		QImageIOHandler::TransformationMirror,
-		QImage::Format_RGBA8888
-	},
-	{
-		Z_BEST_SPEED,
-		100,
-		3,
-		QByteArrayLiteral("pvrtc1_4"),
-		QImageIOHandler::TransformationRotate180,
-		QImage::Format_RGBA8888
-	},
-	{
-		Z_BEST_SPEED,
-		100,
-		2,
-		QByteArrayLiteral("etc1"),
-		QImageIOHandler::TransformationNone,
-		QImage::Format_RGB888
-	},
-	{
-		Z_BEST_COMPRESSION,
-		0,
-		3,
-		QByteArrayLiteral("etc2"),
-		QImageIOHandler::TransformationMirror,
-		QImage::Format_RGBA8888
-	}
+	{ Z_NO_COMPRESSION, -1, 2, QByteArray(),
+		QImageIOHandler::TransformationNone, QImage::Format_RGBA8888 },
+	{ Z_NO_COMPRESSION, -1, 2, QByteArray(),
+		QImageIOHandler::TransformationFlip, QImage::Format_RGBA8888 },
+	{ Z_NO_COMPRESSION, -1, 3, QByteArray(),
+		QImageIOHandler::TransformationMirror, QImage::Format_RGBA8888 },
+	{ Z_DEFAULT_COMPRESSION, 80, 2, QByteArrayLiteral("pvrtc2_2"),
+		QImageIOHandler::TransformationNone, QImage::Format_RGBA8888 },
+	{ Z_NO_COMPRESSION, 50, 2, QByteArrayLiteral("pvrtc2_4"),
+		QImageIOHandler::TransformationFlip, QImage::Format_RGBA8888 },
+	{ Z_BEST_COMPRESSION, 0, 3, QByteArrayLiteral("pvrtc1_2"),
+		QImageIOHandler::TransformationMirror, QImage::Format_RGBA8888 },
+	{ Z_BEST_SPEED, 100, 3, QByteArrayLiteral("pvrtc1_4"),
+		QImageIOHandler::TransformationRotate180, QImage::Format_RGBA8888 },
+	{ Z_BEST_SPEED, 100, 2, QByteArrayLiteral("etc1"),
+		QImageIOHandler::TransformationNone, QImage::Format_RGB888 },
+	{ Z_BEST_COMPRESSION, 0, 3, QByteArrayLiteral("etc2"),
+		QImageIOHandler::TransformationMirror, QImage::Format_RGBA8888 }
 };
 
 template <typename CLASS>
@@ -148,7 +94,7 @@ static const QImage &fetchImage()
 
 void PVRTests::testInstallation()
 {
-	QList<QList<QByteArray> > supported;
+	QList<QList<QByteArray>> supported;
 	supported.append(QImageReader::supportedImageFormats());
 	supported.append(QImageWriter::supportedImageFormats());
 
@@ -261,8 +207,7 @@ void PVRTests::testRead(
 
 QByteArray PVRTests::getSubType(int ver, const QByteArray &str)
 {
-	auto subType = QByteArrayLiteral("pvr") +
-		QByteArray().setNum(ver);
+	auto subType = QByteArrayLiteral("pvr") + QByteArray().setNum(ver);
 
 	if (!str.isEmpty())
 		subType += '.' + str;
@@ -273,9 +218,7 @@ QByteArray PVRTests::getSubType(int ver, const QByteArray &str)
 QString PVRTests::filePathForSubType(
 	const QDir &dir, const QByteArray &subType, bool compressed)
 {
-	return dir.filePath(
-		QString::fromLatin1(
-			subType + (compressed
-					   ? QByteArrayLiteral(".pvr.ccz")
-					   : QByteArrayLiteral(".pvr"))));
+	return dir.filePath(QString::fromLatin1(subType +
+		(compressed ? QByteArrayLiteral(".pvr.ccz")
+					: QByteArrayLiteral(".pvr"))));
 }

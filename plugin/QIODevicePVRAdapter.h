@@ -10,12 +10,10 @@ public:
 	QIODevicePVRAdapter(QIODevice *adaptee);
 	virtual ~QIODevicePVRAdapter() override;
 
-	virtual bool read(
-		size_t elementSize, size_t elementCount,
-		void *buffer, size_t &elementsRead) const override;
+	virtual bool read(size_t elementSize, size_t elementCount, void *buffer,
+		size_t &elementsRead) const override;
 
-	virtual bool write(
-		size_t elementSize, size_t elementCount,
+	virtual bool write(size_t elementSize, size_t elementCount,
 		const void *buffer, size_t &elementsWritten) override;
 
 	virtual bool seek(long offset, SeekOrigin origin) const override;
@@ -35,10 +33,8 @@ private:
 	typedef int64_t (QIODevice::*Read)(char *, int64_t);
 	typedef int64_t (QIODevice::*Write)(const char *, int64_t);
 
-	bool ioOperation(
-		size_t elementSize, size_t elementCount,
-		void *buffer, size_t &resultCount,
-		IOOperation op) const;
+	bool ioOperation(size_t elementSize, size_t elementCount, void *buffer,
+		size_t &resultCount, IOOperation op) const;
 
 	QIODevice *mAdaptee;
 	mutable int64_t mOriginalPosition;

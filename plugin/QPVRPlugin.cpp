@@ -8,22 +8,24 @@
 QImageIOPlugin::Capabilities QPVRPlugin::capabilities(
 	QIODevice *device, const QByteArray &format) const
 {
-	if (0 == strcmp(format.data(), "pvr") ||
-		0 == strcmp(format.data(), "pvr.ccz"))
+	if (format == QPVRHandler::PVR_Format() ||
+		format == QPVRHandler::PVR_CCZ_Format())
 	{
 		return Capabilities(CanRead | CanWrite);
 	}
 
 	auto file = dynamic_cast<QFileDevice *>(device);
 
-	if (nullptr != file && file->fileName().endsWith(
+	if (nullptr != file &&
+		file->fileName().endsWith(
 			QLatin1String(".pvr.ccz"), Qt::CaseInsensitive) &&
 		0 == strcmp(format.data(), "ccz"))
 	{
 		// detected pvr.ccz
-	} else
-	if (!format.isEmpty())
+	} else if (!format.isEmpty())
+	{
 		return 0;
+	}
 
 	if (nullptr == device || !device->isOpen())
 		return 0;
@@ -50,9 +52,8 @@ QImageIOHandler *QPVRPlugin::create(
 	auto handler = new QPVRHandler;
 	handler->setDevice(device);
 
-	handler->setFormat(
-		(0 == strcmp(format.data(), "ccz"))
-		? QByteArrayLiteral("pvr.ccz")
-		: format);
+	handler->setFormat((0 == strcmp(format.data(), "ccz"))
+			? QPVRHandler::PVR_CCZ_Format()
+			: format);
 	return handler;
 }
