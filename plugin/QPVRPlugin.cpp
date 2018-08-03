@@ -19,7 +19,7 @@ QImageIOPlugin::Capabilities QPVRPlugin::capabilities(
 	if (nullptr != file &&
 		file->fileName().endsWith(
 			QLatin1String(".pvr.ccz"), Qt::CaseInsensitive) &&
-		0 == strcmp(format.data(), "ccz"))
+		format == "ccz")
 	{
 		// detected pvr.ccz
 	} else if (!format.isEmpty())
@@ -52,8 +52,7 @@ QImageIOHandler *QPVRPlugin::create(
 	auto handler = new QPVRHandler;
 	handler->setDevice(device);
 
-	handler->setFormat((0 == strcmp(format.data(), "ccz"))
-			? QPVRHandler::PVR_CCZ_Format()
-			: format);
+	handler->setFormat(
+		format == "ccz" ? QPVRHandler::PVR_CCZ_Format() : format);
 	return handler;
 }

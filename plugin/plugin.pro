@@ -1,4 +1,4 @@
-VERSION = 1.0.4
+VERSION = 1.0.5
 
 TARGET = qpvr
 
@@ -76,3 +76,6 @@ INCLUDEPATH += \
 
 PLUGIN_TYPE = imageformats
 PLUGIN_CLASS_NAME = QPVRPlugin
+
+DISTFILES += \
+    CHANGELOG
