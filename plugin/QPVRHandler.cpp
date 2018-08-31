@@ -466,7 +466,7 @@ void QPVRHandler::setOption(ImageOption option, const QVariant &value)
 		{
 			int r = value.toInt(&ok);
 
-			if (!ok || r <= 0)
+			if (!ok || r < 0)
 			{
 				mCompressionRatio = Z_DEFAULT_COMPRESSION;
 			} else
