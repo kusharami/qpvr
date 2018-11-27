@@ -489,7 +489,7 @@ void QPVRHandler::setOption(ImageOption option, const QVariant &value)
 		}
 
 		case ScaledSize:
-			mScaledSize = value.value<QSize>();
+			mScaledSize = value.toSize();
 			break;
 
 		case Quality:
