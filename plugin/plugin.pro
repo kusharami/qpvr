@@ -12,12 +12,12 @@ unix|win32-g++ {
     QMAKE_CXXFLAGS += -Wall
     QMAKE_CXXFLAGS += \
         -Wno-unknown-pragmas
-} else {
-    win32 {
-        QMAKE_CXXFLAGS_WARN_OFF -= -W0
-        QMAKE_CXXFLAGS += -W3
-        QMAKE_LFLAGS += /NODEFAULTLIB:LIBCMT
-    }
+}
+
+win32-msvc* {
+    QMAKE_CXXFLAGS_WARN_OFF -= -W0
+    QMAKE_CXXFLAGS += -W3
+    QMAKE_LFLAGS += /NODEFAULTLIB:LIBCMT
 }
 
 DESTDIR = $$[QT_INSTALL_PLUGINS]/imageformats
@@ -35,7 +35,6 @@ SOURCES += \
 THIRDPARTY_PATH = $$_PRO_FILE_PWD_/../thirdparty
 
 include($$THIRDPARTY_PATH/qzstream/QZStream.pri)
-
 include(../pvrtexlib.pri)
 
 win32 {
@@ -52,15 +51,19 @@ CONFIG(debug, debug|release) {
     CONFIG_DIR = Release
 }
 
-win32:PRE_TARGETDEPS += \
-    $$THIRDPARTY_PATH/qzstream/build/$$CONFIG_DIR/QZStream.lib \
-    $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR/PVRCore.lib \
-    $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR/PVRAssets.lib
+BUILD_LIBS_DIR = $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
 
-macx:PRE_TARGETDEPS += \
+win32-msvc*:PRE_TARGETDEPS += \
+    $$PVRTEXLIB_PATH/PVRTexLib.lib \
+    $$THIRDPARTY_PATH/qzstream/build/$$CONFIG_DIR/QZStream.lib \
+    $$BUILD_LIBS_DIR/PVRCore.lib \
+    $$BUILD_LIBS_DIRR/PVRAssets.lib
+
+linux|macx:PRE_TARGETDEPS += \
+    $$PVRTEXLIB_PATH/libPVRTexLib.a \
     $$THIRDPARTY_PATH/qzstream/build/$$CONFIG_DIR/libQZStream.a \
-    $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR/libPVRCore.a \
-    $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR/libPVRAssets.a
+    $$BUILD_LIBS_DIR/libPVRCore.a \
+    $$BUILD_LIBS_DIR/libPVRAssets.a
 
 LIBS += -L$$PVRTEXLIB_PATH
 LIBS += -L$$THIRDPARTY_PATH/qzstream/build/$$CONFIG_DIR
