@@ -21,7 +21,7 @@ macx {
 }
 
 include($$THIRDPARTY_PATH/qzstream/QZStream.pri)
-include(../deps.pri)
+include(../pvrdepend.pri)
 
 DEFINES += SRCDIR=\\\"$$PWD/\\\"
 
