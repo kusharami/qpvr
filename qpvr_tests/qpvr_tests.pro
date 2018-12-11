@@ -20,6 +20,13 @@ macx {
     QMAKE_BUNDLE_DATA += DYNAMIC_LIBS
 }
 
+CONFIG += warn_off
+unix {
+    QMAKE_CXXFLAGS_WARN_OFF -= -w
+    QMAKE_CXXFLAGS += -Wall
+    QMAKE_CXXFLAGS += -Wno-unused-private-field
+}
+
 include($$THIRDPARTY_PATH/qzstream/QZStream.pri)
 include(../pvrdepend.pri)
 
