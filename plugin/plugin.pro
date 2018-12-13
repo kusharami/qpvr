@@ -57,7 +57,7 @@ win32-msvc*:PRE_TARGETDEPS += \
     $$PVRTEXLIB_PATH/PVRTexLib.lib \
     $$THIRDPARTY_PATH/qzstream/build/$$CONFIG_DIR/QZStream.lib \
     $$BUILD_LIBS_DIR/PVRCore.lib \
-    $$BUILD_LIBS_DIRR/PVRAssets.lib
+    $$BUILD_LIBS_DIR/PVRAssets.lib
 
 equals(PVRTEXLIB_STATIC, 1) {
     linux|macx:PRE_TARGETDEPS += $$PVRTEXLIB_PATH/libPVRTexLib.a
