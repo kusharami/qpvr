@@ -54,8 +54,8 @@ using namespace assetReaders;
 using namespace assetWriters;
 
 QPVRHandler::QPVRHandler()
-	: mCompressionRatio(Z_DEFAULT_COMPRESSION)
-	, mQuality(1.0)
+	: mCompressionRatio(-1)
+	, mQuality(-1)
 	, mOrientation(0)
 	, mFormat(UnknownFormat)
 	, mImageFormat(QImage::Format_Invalid)
@@ -199,22 +199,8 @@ static bool imageFormatToPvrPixelType(
 			pixelType = PixelType('r', 'g', 'b', 0, 5, 6, 5, 0);
 			break;
 
-		case QImage::Format_ARGB8565_Premultiplied:
-			premultiplied = true;
-			pixelType = PixelType('a', 'r', 'g', 'b', 8, 5, 6, 5);
-			break;
-
-		case QImage::Format_ARGB8555_Premultiplied:
-			premultiplied = true;
-			pixelType = PixelType('a', 'r', 'g', 'b', 8, 5, 5, 5);
-			break;
-
 		case QImage::Format_RGB888:
 			pixelType = PixelType('r', 'g', 'b', 0, 8, 8, 8, 0);
-			break;
-
-		case QImage::Format_RGB444:
-			pixelType = PixelType('r', 'g', 'b', 0, 4, 4, 4, 0);
 			break;
 
 		case QImage::Format_ARGB4444_Premultiplied:
@@ -254,6 +240,12 @@ static bool imageFormatToPvrPixelType(
 	return true;
 }
 
+static int convertQuality(int q, int total, int qdefault)
+{
+	return q < 0 ? qdefault
+				 : (qMin(q, 100) * (total - 1)) / (100 - (100 / total - 1));
+}
+
 bool QPVRHandler::write(const QImage &image)
 {
 	if (mFormat == UnknownFormat)
@@ -267,17 +259,48 @@ bool QPVRHandler::write(const QImage &image)
 	bool isPremultiplied = false;
 	QImage img = image;
 
-	if (!imageFormatToPvrPixelType(
-			image.format(), &pixelType, &isPremultiplied))
+	auto imageFormat = QImage::Format(mImageFormat);
+	if (imageFormat == QImage::Format_Invalid)
 	{
-		img = image.convertToFormat(QImage::Format_RGB888);
+		imageFormat = image.format();
+	}
+
+	switch (imageFormat)
+	{
+		case QImage::Format_RGB555:
+			imageFormat = QImage::Format_RGB16;
+			break;
+
+		case QImage::Format_RGB444:
+			imageFormat = QImage::Format_ARGB4444_Premultiplied;
+			break;
+
+		default:
+			break;
+	}
+
+	if (!imageFormatToPvrPixelType(imageFormat, &pixelType, &isPremultiplied))
+	{
+		if (image.hasAlphaChannel())
+		{
+			imageFormat = image.pixelFormat().premultiplied() ==
+					QPixelFormat::Premultiplied
+				? QImage::Format_RGBA8888_Premultiplied
+				: QImage::Format_RGBA8888;
+		} else
+		{
+			imageFormat = QImage::Format_RGB888;
+		}
 
 		if (!imageFormatToPvrPixelType(
-				img.format(), &pixelType, &isPremultiplied))
+				imageFormat, &pixelType, &isPremultiplied))
 			return false;
 	}
 
-	mImageFormat = img.format();
+	if (img.format() != imageFormat)
+	{
+		img = image.convertToFormat(imageFormat);
+	}
 
 	int pixelSize = (img.pixelFormat().bitsPerPixel() + 7) / 8;
 	int width = img.width();
@@ -286,7 +309,7 @@ bool QPVRHandler::write(const QImage &image)
 	CPVRTextureHeader header(pixelType.PixelTypeID, height, width, 1, 1, 1, 1,
 		ePVRTCSpacelRGB, ePVRTVarTypeUnsignedByteNorm, isPremultiplied);
 
-	header.setOrientation((EPVRTOrientation) mOrientation);
+	header.setOrientation(EPVRTOrientation(mOrientation));
 
 	CPVRTexture texture(header);
 
@@ -312,6 +335,17 @@ bool QPVRHandler::write(const QImage &image)
 
 	if (0 != (mFormat & ETC))
 	{
+		switch (convertQuality(mQuality, 2, 0))
+		{
+			default:
+				quality = eETCFastPerceptual;
+				break;
+
+			case 1:
+				quality = eETCSlowPerceptual;
+				break;
+		}
+
 		if (texV2)
 		{
 			if (pvrPixelTypeHasAlpha(outputPixelType.PixelTypeID))
@@ -325,22 +359,11 @@ bool QPVRHandler::write(const QImage &image)
 		{
 			outputPixelType = ePVRTPF_ETC1;
 		}
-
-		switch (int(mQuality * 1))
-		{
-			case 0:
-				quality = eETCFastPerceptual;
-				break;
-
-			case 1:
-				quality = eETCSlowPerceptual;
-				break;
-
-			default:
-				break;
-		}
 	} else if (0 != (mFormat & PVRTC))
 	{
+		quality = ECompressorQuality(
+			convertQuality(mQuality, eNumPVRTCModes, ePVRTCNormal));
+
 		if (texV2)
 		{
 			outputPixelType =
@@ -354,8 +377,6 @@ bool QPVRHandler::write(const QImage &image)
 			outputPixelType =
 				tex4bpp ? ePVRTPF_PVRTCI_4bpp_RGB : ePVRTPF_PVRTCI_2bpp_RGB;
 		}
-
-		quality = ECompressorQuality(int(mQuality * (int(eNumPVRTCModes) - 1)));
 	}
 
 	if (pixelType.PixelTypeID == outputPixelType.PixelTypeID ||
@@ -385,10 +406,7 @@ QVariant QPVRHandler::option(ImageOption option) const
 			}
 
 			case CompressionRatio:
-				if (mCompressionRatio < 0)
-					return Z_DEFAULT_COMPRESSION;
-
-				return (100 * mCompressionRatio) / Z_BEST_COMPRESSION;
+				return mCompressionRatio;
 
 			case Size:
 			{
@@ -402,7 +420,7 @@ QVariant QPVRHandler::option(ImageOption option) const
 				return mScaledSize;
 
 			case Quality:
-				return int(mQuality * 100);
+				return mQuality;
 
 			case ImageFormat:
 				ensureScanned();
@@ -466,30 +484,19 @@ void QPVRHandler::setOption(ImageOption option, const QVariant &value)
 		{
 			int r = value.toInt(&ok);
 
-			if (!ok || r < 0)
-			{
-				mCompressionRatio = Z_DEFAULT_COMPRESSION;
-			} else
-			{
-				if (r > 100)
-					r = 100;
-				mCompressionRatio = (Z_BEST_COMPRESSION * r) / 100;
-			}
+			mCompressionRatio = ok ? r : -1;
 			break;
 		}
 
 		case ScaledSize:
-			mScaledSize = value.value<QSize>();
+			mScaledSize = value.toSize();
 			break;
 
 		case Quality:
 		{
 			int q = value.toInt(&ok);
 
-			if (!ok || q < 0 || q > 100)
-				q = 100;
-
-			mQuality = q / 100.0;
+			mQuality = ok ? q : -1;
 			break;
 		}
 
@@ -945,7 +952,11 @@ bool QPVRHandler::writeTexture(const Texture &texture)
 
 	if (0 != (mFormat & CCZ))
 	{
-		compress.reset(new QCCZCompressionStream(device, mCompressionRatio));
+		int compression = mCompressionRatio < 0
+			? Z_DEFAULT_COMPRESSION
+			: (Z_BEST_COMPRESSION * qMin(mCompressionRatio, 100)) / 91;
+
+		compress.reset(new QCCZCompressionStream(device, compression));
 
 		device = compress.get();
 
