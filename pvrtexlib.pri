@@ -1,17 +1,34 @@
-isEmpty(PVRTEXLIB_PATH) {
-    PVRTEXLIB_PATH = $$THIRDPARTY_PATH/PVRTexLib
+PVRTEXLIB_PATH = $$PWD/thirdparty/PVRTexLib
+
+isEmpty(PVRTEXLIB_STATIC) {
+    PVRTEXLIB_STATIC = 0
 }
 
-macx {
-    PVRTEXLIB_PATH = $$PVRTEXLIB_PATH/OSX_x86/Dynamic
-}
+PVRTEXLIB_CONFIG = Dynamic
 
-win32 {
-    contains(QMAKE_HOST.arch, x86_64) {
-        PVRTEXLIB_PATH = $$PVRTEXLIB_PATH/Windows_x86_64/Dynamic
-    } else {
-        PVRTEXLIB_PATH = $$PVRTEXLIB_PATH/Windows_x86_32/Dynamic
+equals(PVRTEXLIB_STATIC, 1) {
+    win32-msvc2013|macx|linux {
+        PVRTEXLIB_CONFIG = Static
     }
-
-    DEFINES += _WINDLL_IMPORT
 }
+
+win32-msvc* {
+    equals(PVRTEXLIB_CONFIG, "Dynamic") {
+        PVRTEXLIB_STATIC = 0
+        DEFINES += _WINDLL_IMPORT
+    }
+}
+
+win32-msvc*|linux {
+    contains(QMAKE_HOST.arch, x86_64) {
+        PVRTEXLIB_PREFIX = x86_64/$$PVRTEXLIB_CONFIG
+    } else {
+        PVRTEXLIB_PREFIX = x86_32/$$PVRTEXLIB_CONFIG
+    }
+}
+
+linux:PVRTEXLIB_PREFIX = Linux_$$PVRTEXLIB_PREFIX
+win32-msvc*:PVRTEXLIB_PREFIX = Windows_$$PVRTEXLIB_PREFIX
+macx:PVRTEXLIB_PREFIX = OSX_x86/$$PVRTEXLIB_CONFIG
+
+PVRTEXLIB_PATH = $$PVRTEXLIB_PATH/$$PVRTEXLIB_PREFIX

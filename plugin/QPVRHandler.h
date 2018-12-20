@@ -96,7 +96,7 @@ private:
 	mutable TexturePtr mTexture;
 	QSize mScaledSize;
 	int mCompressionRatio;
-	double mQuality;
+	int mQuality;
 	mutable int mOrientation;
 	mutable int mFormat;
 	mutable int mImageFormat;

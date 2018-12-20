@@ -9,8 +9,6 @@
 #include <QTemporaryDir>
 #include <QDir>
 
-#include <zlib.h>
-
 #include <QtTest>
 #include <QDebug>
 
@@ -27,23 +25,23 @@ struct PVRTests::Options
 };
 
 const PVRTests::Options PVRTests::Options::OPTIONS[] = {
-	{ Z_NO_COMPRESSION, -1, 2, QByteArray(),
+	{ 0, -1, 2, QByteArray(), QImageIOHandler::TransformationNone,
+		QImage::Format_RGBA8888 },
+	{ 0, -1, 2, QByteArray(), QImageIOHandler::TransformationFlip,
+		QImage::Format_RGBA8888 },
+	{ 0, -1, 3, QByteArray(), QImageIOHandler::TransformationMirror,
+		QImage::Format_RGBA8888 },
+	{ -1, 80, 2, QByteArrayLiteral("pvrtc2_2"),
 		QImageIOHandler::TransformationNone, QImage::Format_RGBA8888 },
-	{ Z_NO_COMPRESSION, -1, 2, QByteArray(),
+	{ 0, 50, 2, QByteArrayLiteral("pvrtc2_4"),
 		QImageIOHandler::TransformationFlip, QImage::Format_RGBA8888 },
-	{ Z_NO_COMPRESSION, -1, 3, QByteArray(),
+	{ 100, 0, 3, QByteArrayLiteral("pvrtc1_2"),
 		QImageIOHandler::TransformationMirror, QImage::Format_RGBA8888 },
-	{ Z_DEFAULT_COMPRESSION, 80, 2, QByteArrayLiteral("pvrtc2_2"),
-		QImageIOHandler::TransformationNone, QImage::Format_RGBA8888 },
-	{ Z_NO_COMPRESSION, 50, 2, QByteArrayLiteral("pvrtc2_4"),
-		QImageIOHandler::TransformationFlip, QImage::Format_RGBA8888 },
-	{ Z_BEST_COMPRESSION, 0, 3, QByteArrayLiteral("pvrtc1_2"),
-		QImageIOHandler::TransformationMirror, QImage::Format_RGBA8888 },
-	{ Z_BEST_SPEED, 100, 3, QByteArrayLiteral("pvrtc1_4"),
+	{ 50, 100, 3, QByteArrayLiteral("pvrtc1_4"),
 		QImageIOHandler::TransformationRotate180, QImage::Format_RGBA8888 },
-	{ Z_BEST_SPEED, 100, 2, QByteArrayLiteral("etc1"),
+	{ 50, 100, 2, QByteArrayLiteral("etc1"),
 		QImageIOHandler::TransformationNone, QImage::Format_RGB888 },
-	{ Z_BEST_COMPRESSION, 0, 3, QByteArrayLiteral("etc2"),
+	{ 100, 0, 3, QByteArrayLiteral("etc2"),
 		QImageIOHandler::TransformationMirror, QImage::Format_RGBA8888 }
 };
 
