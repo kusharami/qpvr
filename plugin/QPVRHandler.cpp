@@ -15,14 +15,9 @@
 
 #include <QDebug>
 
-#include "QCCZStream.h"
-#undef compress
-
 static const int SUPPORTED_FORMATS[] = {
 	QPVRHandler::PVR2, //
 	QPVRHandler::PVR3, //
-	QPVRHandler::PVR2_CCZ, //
-	QPVRHandler::PVR3_CCZ, //
 	QPVRHandler::PVR2_PVRTC1_2, //
 	QPVRHandler::PVR3_PVRTC1_2, //
 	QPVRHandler::PVR2_PVRTC1_4, //
@@ -34,17 +29,6 @@ static const int SUPPORTED_FORMATS[] = {
 	QPVRHandler::PVR2_ETC1, //
 	QPVRHandler::PVR3_ETC1, //
 	QPVRHandler::PVR3_ETC2, //
-	QPVRHandler::PVR2_PVRTC1_2_CCZ, //
-	QPVRHandler::PVR3_PVRTC1_2_CCZ, //
-	QPVRHandler::PVR2_PVRTC1_4_CCZ, //
-	QPVRHandler::PVR3_PVRTC1_4_CCZ, //
-	QPVRHandler::PVR2_PVRTC2_2_CCZ, //
-	QPVRHandler::PVR3_PVRTC2_2_CCZ, //
-	QPVRHandler::PVR2_PVRTC2_4_CCZ, //
-	QPVRHandler::PVR3_PVRTC2_4_CCZ, //
-	QPVRHandler::PVR2_ETC1_CCZ, //
-	QPVRHandler::PVR3_ETC1_CCZ, //
-	QPVRHandler::PVR3_ETC2_CCZ, //
 };
 
 using namespace pvrtexture;
@@ -54,8 +38,7 @@ using namespace assetReaders;
 using namespace assetWriters;
 
 QPVRHandler::QPVRHandler()
-	: mCompressionRatio(-1)
-	, mQuality(-1)
+	: mQuality(-1)
 	, mOrientation(0)
 	, mFormat(UnknownFormat)
 	, mImageFormat(QImage::Format_Invalid)
@@ -71,30 +54,16 @@ QPVRHandler::Format QPVRHandler::detectFileFormat(QIODevice *device)
 
 	Format result = UnknownFormat;
 
-	auto origDevice = device;
-	origDevice->startTransaction();
+	device->startTransaction();
 	{
-		bool ccz = false;
-		QCCZDecompressionStream decompressor(origDevice);
-
-		if (decompressor.open())
-		{
-			device = &decompressor;
-			ccz = true;
-		} else
-		{
-			origDevice->rollbackTransaction();
-			origDevice->startTransaction();
-		}
-
 		QIODevicePVRAdapter stream(device);
 
 		if (TextureReaderPVR().isSupportedFile(stream))
 		{
-			result = ccz ? PVR_CCZ : PVR;
+			result = PVR;
 		}
 	}
-	origDevice->rollbackTransaction();
+	device->rollbackTransaction();
 
 	return result;
 }
@@ -102,11 +71,6 @@ QPVRHandler::Format QPVRHandler::detectFileFormat(QIODevice *device)
 QByteArray QPVRHandler::PVR_Format()
 {
 	return QByteArrayLiteral("pvr");
-}
-
-QByteArray QPVRHandler::PVR_CCZ_Format()
-{
-	return QByteArrayLiteral("pvr.ccz");
 }
 
 bool QPVRHandler::canRead() const
@@ -121,10 +85,6 @@ bool QPVRHandler::canRead() const
 	{
 		case PVR:
 			setFormat(PVR_Format());
-			return true;
-
-		case PVR_CCZ:
-			setFormat(PVR_CCZ_Format());
 			return true;
 
 		default:
@@ -251,8 +211,6 @@ bool QPVRHandler::write(const QImage &image)
 	if (mFormat == UnknownFormat)
 	{
 		mFormat = PVR3;
-		if (format() == PVR_CCZ_Format())
-			mFormat |= CCZ;
 	}
 
 	PixelType pixelType;
@@ -405,9 +363,6 @@ QVariant QPVRHandler::option(ImageOption option) const
 					supportedSubTypes());
 			}
 
-			case CompressionRatio:
-				return mCompressionRatio;
-
 			case Size:
 			{
 				if (!ensureScanned())
@@ -480,14 +435,6 @@ void QPVRHandler::setOption(ImageOption option, const QVariant &value)
 			break;
 		}
 
-		case CompressionRatio:
-		{
-			int r = value.toInt(&ok);
-
-			mCompressionRatio = ok ? r : -1;
-			break;
-		}
-
 		case ScaledSize:
 			mScaledSize = value.toSize();
 			break;
@@ -544,7 +491,6 @@ bool QPVRHandler::supportsOption(ImageOption option) const
 	{
 		case SubType:
 		case SupportedSubTypes:
-		case CompressionRatio:
 		case Size:
 		case ScaledSize:
 		case Quality:
@@ -619,7 +565,6 @@ int QPVRHandler::stringToFormat(const QByteArray &str)
 		return 0;
 
 	static const QByteArray s_pvr = QByteArrayLiteral("pvr");
-	static const QByteArray s_ccz = QByteArrayLiteral("ccz");
 	static const QByteArray s_pvrtc = QByteArrayLiteral("pvrtc");
 	static const QByteArray s_etc = QByteArrayLiteral("etc");
 
@@ -649,70 +594,61 @@ int QPVRHandler::stringToFormat(const QByteArray &str)
 
 	auto s = split.takeFirst();
 
-	if (s != s_ccz)
+	int skip;
+	int suffix;
+
+	if (s.startsWith(s_pvrtc))
 	{
-		int skip;
-		int suffix;
+		result |= PVRTC;
+		skip = s_pvrtc.length();
+		suffix = 3;
+	} else if (s.startsWith(s_etc))
+	{
+		result |= ETC;
+		skip = s_etc.length();
+		suffix = 1;
+	} else
+	{
+		return 0;
+	}
 
-		if (s.startsWith(s_pvrtc))
-		{
-			result |= PVRTC;
-			skip = s_pvrtc.length();
-			suffix = 3;
-		} else if (s.startsWith(s_etc))
-		{
-			result |= ETC;
-			skip = s_etc.length();
-			suffix = 1;
-		} else
-		{
+	if (s.length() != skip + suffix)
+	{
+		return 0;
+	}
+
+	switch (s.at(skip))
+	{
+		case '1':
+			break;
+
+		case '2':
+			result |= TEXV2;
+			break;
+
+		default:
 			return 0;
-		}
+	}
 
-		if (s.length() != skip + suffix)
+	if (suffix >= 3)
+	{
+		switch (s.at(skip + 2))
 		{
-			return 0;
-		}
-
-		switch (s.at(skip))
-		{
-			case '1':
+			case '2':
 				break;
 
-			case '2':
-				result |= TEXV2;
+			case '4':
+				result |= TEXBIT4;
 				break;
 
 			default:
 				return 0;
-		}
-
-		if (suffix >= 3)
-		{
-			switch (s.at(skip + 2))
-			{
-				case '2':
-					break;
-
-				case '4':
-					result |= TEXBIT4;
-					break;
-
-				default:
-					return 0;
-			}
 		}
 	}
 
 	if (!split.isEmpty())
 	{
 		s = split.takeFirst();
-	}
-
-	if (s == s_ccz)
-	{
-		result |= CCZ;
-		return result;
 	}
 
 	return result;
@@ -754,11 +690,6 @@ QByteArray QPVRHandler::formatToString(int format)
 		}
 	}
 
-	if (0 != (format & CCZ))
-	{
-		result += QByteArrayLiteral(".ccz");
-	}
-
 	return result;
 }
 
@@ -795,24 +726,10 @@ bool QPVRHandler::scanDevice() const
 
 	Q_ASSERT(nullptr == mTexture);
 
-	auto device = this->device();
-	std::unique_ptr<QCCZDecompressionStream> decompress;
-
-	if (0 != (mFormat & CCZ))
-	{
-		decompress.reset(new QCCZDecompressionStream(device));
-		device = decompress.get();
-
-		if (!device->open(QIODevice::ReadOnly))
-		{
-			return false;
-		}
-	}
-
 	Texture tex;
 	bool readOk;
 	{
-		Stream::ptr_type stream(new QIODevicePVRAdapter(device));
+		Stream::ptr_type stream(new QIODevicePVRAdapter(device()));
 		TextureReaderPVR reader(stream);
 
 		readOk = reader.readAsset(tex);
@@ -947,28 +864,9 @@ bool QPVRHandler::writeTexture(const Texture &texture)
 	if (!writer->canWriteAsset(texture) || !writer->addAssetToWrite(texture))
 		return false;
 
-	auto device = this->device();
-	std::unique_ptr<QCCZCompressionStream> compress;
-
-	if (0 != (mFormat & CCZ))
-	{
-		int compression = mCompressionRatio < 0
-			? Z_DEFAULT_COMPRESSION
-			: (Z_BEST_COMPRESSION * qMin(mCompressionRatio, 100)) / 91;
-
-		compress.reset(new QCCZCompressionStream(device, compression));
-
-		device = compress.get();
-
-		if (!device->open(QIODevice::WriteOnly))
-		{
-			return false;
-		}
-	}
-
 	bool result;
 	{
-		Stream::ptr_type stream(new QIODevicePVRAdapter(device));
+		Stream::ptr_type stream(new QIODevicePVRAdapter(device()));
 		result = writer->openAssetStream(stream) && writer->writeAllAssets();
 		writerPtr.reset(nullptr);
 	}
