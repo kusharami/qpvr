@@ -39,6 +39,7 @@ QImageIOHandler *QPVRPlugin::create(
 {
 	auto handler = new QPVRHandler;
 	handler->setDevice(device);
-	handler->setFormat(format);
+	if (!format.isEmpty())
+		handler->setFormat(format);
 	return handler;
 }
