@@ -2,6 +2,7 @@
 
 #include <QImageIOHandler>
 #include <QSize>
+#include <QRect>
 #include <QSharedPointer>
 
 #include "PVRCore/Texture/TextureHeader.h"

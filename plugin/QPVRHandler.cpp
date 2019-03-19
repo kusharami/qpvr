@@ -13,7 +13,7 @@
 #include "PVRTextureFormat.h"
 #include "PVRTextureUtilities.h"
 
-#include <QDebug>
+#include <qlogging.h>
 
 static const int SUPPORTED_FORMATS[] = {
 	QPVRHandler::PVR2, //
@@ -124,12 +124,12 @@ bool QPVRHandler::read(QImage *image)
 	if (mScaledSize.isValid() && !mScaledSize.isNull() &&
 		mScaledSize != image->size())
 	{
-		*image = image
-					 ->scaled(mScaledSize, Qt::IgnoreAspectRatio,
-						 Qt::SmoothTransformation)
-					 .convertToFormat(QImage::Format(mImageFormat));
+		*image = image->scaled(
+			mScaledSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 	}
 
+	if (image->format() != QImage::Format(mImageFormat))
+		*image = image->convertToFormat(QImage::Format(mImageFormat));
 	return true;
 }
 
@@ -726,6 +726,9 @@ bool QPVRHandler::scanDevice() const
 
 	Q_ASSERT(nullptr == mTexture);
 
+	quint32 signature;
+	device()->peek(reinterpret_cast<char *>(&signature), 4);
+
 	Texture tex;
 	bool readOk;
 	{
@@ -834,7 +837,8 @@ bool QPVRHandler::scanDevice() const
 				ePVRTVarTypeUnsignedByteNorm, ePVRTCSpacelRGB,
 				ECompressorQuality(0)))
 		{
-			mFormat |= PVR3;
+			mFormat |=
+				(signature == TextureHeader::Header::PVRv3) ? PVR3 : PVR2;
 			mImageCurrentIndex = 0;
 			mOrientation = orientation;
 			mTexture = texture;

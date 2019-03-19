@@ -163,8 +163,6 @@ void PVRTests::testRead(const Options &options, const QDir &dir)
 	QCOMPARE(reader.loopCount(), 0);
 	QCOMPARE(reader.imageCount(), 1);
 
-	subType = getSubType(3, options.subType);
-
 	QCOMPARE(reader.subType(), subType);
 
 	QImage readImage;
