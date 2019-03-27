@@ -1,4 +1,4 @@
-VERSION = 1.0.7
+VERSION = 1.1.0
 
 TARGET = qpvr
 
@@ -34,7 +34,6 @@ SOURCES += \
 
 THIRDPARTY_PATH = $$_PRO_FILE_PWD_/../thirdparty
 
-include($$THIRDPARTY_PATH/qzstream/QZStream.pri)
 include(../pvrtexlib.pri)
 
 win32 {
@@ -55,7 +54,6 @@ BUILD_LIBS_DIR = $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
 
 win32-msvc*:PRE_TARGETDEPS += \
     $$PVRTEXLIB_PATH/PVRTexLib.lib \
-    $$THIRDPARTY_PATH/qzstream/build/$$CONFIG_DIR/QZStream.lib \
     $$BUILD_LIBS_DIR/PVRCore.lib \
     $$BUILD_LIBS_DIR/PVRAssets.lib
 
@@ -64,21 +62,18 @@ equals(PVRTEXLIB_STATIC, 1) {
 }
 
 linux|macx:PRE_TARGETDEPS += \
-    $$THIRDPARTY_PATH/qzstream/build/$$CONFIG_DIR/libQZStream.a \
     $$BUILD_LIBS_DIR/libPVRCore.a \
     $$BUILD_LIBS_DIR/libPVRAssets.a
 
 LIBS += -L$$PVRTEXLIB_PATH
-LIBS += -L$$THIRDPARTY_PATH/qzstream/build/$$CONFIG_DIR
 LIBS += -L$$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
-LIBS += -lPVRCore -lPVRAssets -lPVRTexLib -lQZStream
+LIBS += -lPVRCore -lPVRAssets -lPVRTexLib
 
 OTHER_FILES += pvr.json
 
 INCLUDEPATH += \
     ../thirdparty/PowerVR_Native_SDK/Framework \
-    ../thirdparty/PVRTexLib/Include \
-    ../thirdparty/qzstream/lib
+    ../thirdparty/PVRTexLib/Include
 
 PLUGIN_TYPE = imageformats
 PLUGIN_CLASS_NAME = QPVRPlugin

@@ -2,6 +2,7 @@
 
 #include <QImageIOHandler>
 #include <QSize>
+#include <QRect>
 #include <QSharedPointer>
 
 #include "PVRCore/Texture/TextureHeader.h"
@@ -21,7 +22,6 @@ public:
 	{
 		UnknownFormat = 0,
 		PVR = (1 << 0),
-		CCZ = (1 << 1),
 		PVR2 = (1 << 2) | PVR,
 		PVR3 = (1 << 3) | PVR,
 		ETC = (1 << 4),
@@ -39,21 +39,7 @@ public:
 		PVR2_ETC1 = PVR2 | ETC,
 		PVR3_ETC1 = PVR3 | ETC,
 		PVR3_ETC2 = PVR3 | ETC | TEXV2,
-		PVR2_CCZ = PVR2 | CCZ,
-		PVR3_CCZ = PVR3 | CCZ,
-		PVR2_PVRTC1_2_CCZ = PVR2_PVRTC1_2 | CCZ,
-		PVR3_PVRTC1_2_CCZ = PVR3_PVRTC1_2 | CCZ,
-		PVR2_PVRTC1_4_CCZ = PVR2_PVRTC1_4 | CCZ,
-		PVR3_PVRTC1_4_CCZ = PVR3_PVRTC1_4 | CCZ,
-		PVR2_PVRTC2_2_CCZ = PVR2_PVRTC2_2 | CCZ,
-		PVR3_PVRTC2_2_CCZ = PVR3_PVRTC2_2 | CCZ,
-		PVR2_PVRTC2_4_CCZ = PVR2_PVRTC2_4 | CCZ,
-		PVR3_PVRTC2_4_CCZ = PVR3_PVRTC2_4 | CCZ,
-		PVR2_ETC1_CCZ = PVR2_ETC1 | CCZ,
-		PVR3_ETC1_CCZ = PVR3_ETC1 | CCZ,
-		PVR3_ETC2_CCZ = PVR3_ETC2 | CCZ,
-		PVR_CCZ = PVR | CCZ,
-		FileFormatMask = PVR_CCZ
+		FileFormatMask = PVR
 	};
 
 	static Format detectFileFormat(QIODevice *device);
@@ -72,7 +58,6 @@ public:
 	virtual bool jumpToNextImage() override;
 
 	static QByteArray PVR_Format();
-	static QByteArray PVR_CCZ_Format();
 
 private:
 	static bool pvrPixelTypeHasAlpha(quint64 pixelTypeId);
@@ -95,7 +80,6 @@ private:
 	using TexturePtr = QSharedPointer<pvrtexture::CPVRTexture>;
 	mutable TexturePtr mTexture;
 	QSize mScaledSize;
-	int mCompressionRatio;
 	int mQuality;
 	mutable int mOrientation;
 	mutable int mFormat;

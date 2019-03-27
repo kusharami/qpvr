@@ -1,4 +1,4 @@
 ﻿{
-	"Keys": [ "pvr", "pvr.ccz" ],
-	"MimeTypes": [ "image/pvr", "image/pvr.ccz" ]
+	"Keys": [ "pvr" ],
+	"MimeTypes": [ "image/pvr" ]
 }

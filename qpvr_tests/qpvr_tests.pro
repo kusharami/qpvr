@@ -27,7 +27,6 @@ unix {
     QMAKE_CXXFLAGS += -Wno-unused-private-field
 }
 
-include($$THIRDPARTY_PATH/qzstream/QZStream.pri)
 include(../pvrdepend.pri)
 
 DEFINES += SRCDIR=\\\"$$PWD/\\\"
