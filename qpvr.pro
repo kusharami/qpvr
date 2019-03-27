@@ -2,10 +2,8 @@ TEMPLATE = subdirs
 SUBDIRS = \
     PVRCore \
     PVRAssets \
-    QZStream \
     plugin \
     qpvr_tests
 
-plugin.depends = PVRCore PVRAssets QZStream
+plugin.depends = PVRCore PVRAssets
 qpvr_tests.depends = plugin
-QZStream.file = thirdparty/qzstream/lib/QZStream.pro
