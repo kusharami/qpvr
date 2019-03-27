@@ -1,9 +1,10 @@
 PVR image format plugin for Qt
 ==============================
 
-v1.1.0  ??.??.2019    
+v1.1.0  27.03.2019    
 	[REFINE] Removed CCZ support because of separate CCZ 
 		image container plugin.
+	[FIX] Correct subtype if when loading pvr2.
 		
 v1.0.7	20.12.2018
 	[REFINE] Added static variant of PVRTexLib.
