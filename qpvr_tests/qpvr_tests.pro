@@ -21,7 +21,7 @@ macx {
 }
 
 CONFIG += warn_off
-unix {
+*clang|*g++ {
     QMAKE_CXXFLAGS_WARN_OFF -= -w
     QMAKE_CXXFLAGS += -Wall
     QMAKE_CXXFLAGS += -Wno-unused-private-field

@@ -24,19 +24,31 @@ macx {
     DEFINES += "TARGET_OS_MAC=1"
 }
 
-unix|win32-g++ {
+*clang|*g++ {
     QMAKE_CXXFLAGS_WARN_OFF -= -w
-    QMAKE_CXXFLAGS += -Wall
+    QMAKE_CXXFLAGS += -Wall -fpermissive
     QMAKE_CXXFLAGS += \
-        -Wno-unknown-pragmas
-} else {
-    win32 {
-        QMAKE_CXXFLAGS_WARN_OFF -= -W0
-        QMAKE_CXXFLAGS += -W3
-        DEFINES += _CRT_SECURE_NO_WARNINGS _MBCS
-        DEFINES -= UNICODE
-        DEFINES -= _UNICODE
-    }
+        -Wno-unknown-pragmas \
+        -Wno-unused-function \
+        -Wno-deprecated-declarations \
+        -Wno-unused-local-typedefs \
+        -Wno-switch \
+
+    *-clang:QMAKE_CXXFLAGS += \
+        -Wno-sometimes-uninitialized
+
+    win32:DEFINES += _WIN32_WINNT=0x600
+}
+
+win32-msvc* {
+    QMAKE_CXXFLAGS_WARN_OFF -= -W0
+    QMAKE_CXXFLAGS += -W3
+    DEFINES += _CRT_SECURE_NO_WARNINGS _MBCS
+}
+
+win32 {
+    DEFINES -= UNICODE
+    DEFINES -= _UNICODE
 }
 
 HEADERS += \

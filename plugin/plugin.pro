@@ -1,4 +1,4 @@
-VERSION = 1.1.0
+VERSION = 1.1.1
 
 TARGET = qpvr
 
@@ -7,10 +7,11 @@ CONFIG += plugin
 
 CONFIG += c++11 warn_off
 
-unix|win32-g++ {
+*clang|*g++ {
     QMAKE_CXXFLAGS_WARN_OFF -= -w
     QMAKE_CXXFLAGS += -Wall
     QMAKE_CXXFLAGS += \
+        -Wno-deprecated-declarations \
         -Wno-unknown-pragmas
 }
 
@@ -23,11 +24,13 @@ win32-msvc* {
 DESTDIR = $$[QT_INSTALL_PLUGINS]/imageformats
 
 HEADERS += \
+    PVRTextureWrapper.h \
     QPVRPlugin.h \
     QPVRHandler.h \
     QIODevicePVRAdapter.h
 
 SOURCES += \
+    PVRTextureWrapper.cpp \
     QPVRPlugin.cpp \
     QPVRHandler.cpp \
     QIODevicePVRAdapter.cpp
@@ -61,19 +64,22 @@ equals(PVRTEXLIB_STATIC, 1) {
     linux|macx:PRE_TARGETDEPS += $$PVRTEXLIB_PATH/libPVRTexLib.a
 }
 
-linux|macx:PRE_TARGETDEPS += \
+*clang|*g++:PRE_TARGETDEPS += \
     $$BUILD_LIBS_DIR/libPVRCore.a \
     $$BUILD_LIBS_DIR/libPVRAssets.a
 
-LIBS += -L$$PVRTEXLIB_PATH
+!win32-g++ {
+    LIBS += -L$$PVRTEXLIB_PATH
+    LIBS += -lPVRTexLib
+}
 LIBS += -L$$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
-LIBS += -lPVRCore -lPVRAssets -lPVRTexLib
+LIBS += -lPVRCore -lPVRAssets 
 
 OTHER_FILES += pvr.json
 
-INCLUDEPATH += \
-    ../thirdparty/PowerVR_Native_SDK/Framework \
-    ../thirdparty/PVRTexLib/Include
+INCLUDEPATH += ../thirdparty/PowerVR_Native_SDK/Framework
+
+!win32-g++:INCLUDEPATH += ../thirdparty/PVRTexLib/Include
 
 PLUGIN_TYPE = imageformats
 PLUGIN_CLASS_NAME = QPVRPlugin

@@ -19,7 +19,7 @@ win32-msvc* {
     }
 }
 
-win32-msvc*|linux {
+win32|linux {
     contains(QMAKE_HOST.arch, x86_64) {
         PVRTEXLIB_PREFIX = x86_64/$$PVRTEXLIB_CONFIG
     } else {
@@ -28,7 +28,7 @@ win32-msvc*|linux {
 }
 
 linux:PVRTEXLIB_PREFIX = Linux_$$PVRTEXLIB_PREFIX
-win32-msvc*:PVRTEXLIB_PREFIX = Windows_$$PVRTEXLIB_PREFIX
+win32:PVRTEXLIB_PREFIX = Windows_$$PVRTEXLIB_PREFIX
 macx:PVRTEXLIB_PREFIX = OSX_x86/$$PVRTEXLIB_CONFIG
 
 PVRTEXLIB_PATH = $$PVRTEXLIB_PATH/$$PVRTEXLIB_PREFIX
