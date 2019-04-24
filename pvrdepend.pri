@@ -12,7 +12,7 @@ isEmpty(BIN_DIR) {
 include(pvrtexlib.pri)
 
 equals(PVRTEXLIB_CONFIG, "Dynamic") {
-    win32-msvc* {
+    win32 {
         QMAKE_POST_LINK += \
             copy /y \"$$shell_path($$PVRTEXLIB_PATH/PVRTexLib.dll)\" \
             \"$$shell_path($$BIN_DIR)\"
