@@ -29,7 +29,7 @@ struct PVRTexLib
 	const void *getDataPointer(void *data);
 };
 
-#ifdef __MINGW64_VERSION_MAJOR
+#if defined(__x86_64)
 
 static const char sConstructHeader[] = "??0CPVRTextureHeader@pvrtexture@@"
 									   "QEAA@_KIIIIIIW4EPVRTColourSpace@@"
@@ -111,7 +111,7 @@ void PVRTexLib::constructTexture(void *data, const pvr::Texture &tex)
 	uint32_t premultiplied = tex.isPreMultiplied();
 	auto dataPointer = tex.getDataPointer();
 
-#ifdef __MINGW64_VERSION_MAJOR
+#if defined(__x86_64)
 	asm(
 		/// call CPVRTextureHeader constructor
 		"movl %10,%%ecx;"
@@ -153,15 +153,59 @@ void PVRTexLib::constructTexture(void *data, const pvr::Texture &tex)
 		"m"(colorSpace), "m"(channelType), "m"(premultiplied),
 		"m"(construct_header), "m"(construct_texture), "m"(data),
 		"m"(dataPointer), "m"(destruct_header)
-		: "rax", "rcx", "rdx", "r8", "r9", "r10", "r11");
+		: "rax", "rcx", "rdx", "r8", "r9", "r10", "r11", "rsp");
 #else
-	// TODO
+	asm(
+		/// call CPVRTextureHeader constructor
+		"movl %10,%%ecx;"
+		"pushl %%ecx;"
+		"movl %9,%%ecx;"
+		"pushl %%ecx;"
+		"movl %8,%%ecx;"
+		"pushl %%ecx;"
+		"movl %7,%%ecx;"
+		"pushl %%ecx;"
+		"movl %6,%%ecx;"
+		"pushl %%ecx;"
+		"movl %5,%%ecx;"
+		"pushl %%ecx;"
+		"movl %4,%%ecx;"
+		"pushl %%ecx;"
+		"movl %3,%%ecx;"
+		"pushl %%ecx;"
+		"movl %2,%%ecx;"
+		"pushl %%ecx;"
+		"lea %1,%%ecx;"
+		"pushl 4(%%ecx);"
+		"pushl (%%ecx);"
+		"lea %0,%%ecx;"
+		"movl %11,%%eax;"
+		"call *%%eax;"
+		/// call CPVRTexture constructor
+		"movl %14,%%ecx;"
+		"pushl %%ecx;"
+		"lea %0,%%ecx;"
+		"pushl %%ecx;"
+		"movl %13,%%ecx;"
+		"movl %12,%%eax;"
+		"call *%%eax;"
+		/// call CPVRTextureHeader destructor
+		"lea %0,%%ecx;"
+		"movl %15,%%eax;"
+		"call *%%eax;"
+		:
+		: "m"(textureHeader), "m"(pixelTypeId), "m"(height), "m"(width),
+		"m"(depth), "m"(numArrays), "m"(numFaces), "m"(numMipMaps),
+		"m"(colorSpace), "m"(channelType), "m"(premultiplied),
+		"m"(construct_header), "m"(construct_texture), "m"(data),
+		"m"(dataPointer), "m"(destruct_header)
+		: "eax", "ecx", "edx", "esp");
 #endif
 }
 
 void PVRTexLib::destructTexture(void *data)
 {
-#ifdef __MINGW64_VERSION_MAJOR
+#if defined(__x86_64)
 	asm("subq $32,%%rsp;"
 		/// call CPVRTexture destructor
 		"call *%%rax;"
@@ -170,7 +214,12 @@ void PVRTexLib::destructTexture(void *data)
 		: "c"(data), "a"(destruct_texture)
 		: "rdx", "r8", "r9", "r10", "r11");
 #else
-//TODO
+	asm(
+		/// call CPVRTexture destructor
+		"call *%%eax;"
+		:
+		: "c"(data), "a"(destruct_texture)
+		: "edx");
 #endif
 }
 
@@ -179,7 +228,7 @@ bool PVRTexLib::transcode(
 {
 	uint64_t pixelTypeId = ptFormat.getPixelTypeId();
 	bool result;
-#ifdef __MINGW64_VERSION_MAJOR
+#if defined(__x86_64)
 	asm(
 		/// call Transcode
 		"xorq %%r8,%%r8;"
@@ -196,10 +245,27 @@ bool PVRTexLib::transcode(
 		"addq $48,%%rsp;"
 		: "=a"(result)
 		: "m"(transcode_p), "m"(data), "m"(pixelTypeId), "m"(eQuality)
-		: "rcx", "rdx", "r8", "r9", "r10", "r11");
-
+		: "rcx", "rdx", "r8", "r9", "r10", "r11", "rsp");
 #else
-	//TODO
+	asm(
+		/// call Transcode
+		"xorl %%edx,%%edx;"
+		"pushl %%edx;" // dither
+		"movl %4,%%ecx;"
+		"pushl %%ecx;" // quality
+		"pushl %%edx;" // lRGB
+		"pushl %%edx;" // UnsignedByteNorm
+		"lea %3,%%ecx;"
+		"pushl 4(%%ecx);"
+		"pushl (%%ecx);"
+		"movl %2,%%ecx;"
+		"pushl %%ecx;"
+		"movl %1,%%eax;"
+		"call *%%eax;"
+		"addl $28,%%esp;"
+		: "=a"(result)
+		: "m"(transcode_p), "m"(data), "m"(pixelTypeId), "m"(eQuality)
+		: "ecx", "edx", "esp");
 #endif
 	return result;
 }
@@ -207,7 +273,7 @@ bool PVRTexLib::transcode(
 const void *PVRTexLib::getDataPointer(void *data)
 {
 	const void *result;
-#ifdef __MINGW64_VERSION_MAJOR
+#if defined(__x86_64)
 	asm("subq $32,%%rsp;"
 		"xor %%r9,%%r9;"
 		"xor %%r8,%%r8;"
@@ -218,7 +284,13 @@ const void *PVRTexLib::getDataPointer(void *data)
 		: "a"(get_data_pointer), "c"(data)
 		: "rdx", "r8", "r9");
 #else
-	// TODO
+	asm("pushl $0;"
+		"pushl $0;"
+		"pushl $0;"
+		"call *%%eax;"
+		: "=a"(result)
+		: "a"(get_data_pointer), "c"(data)
+		: "edx");
 #endif
 	return result;
 }

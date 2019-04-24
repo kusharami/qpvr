@@ -7,18 +7,18 @@ CONFIG += plugin
 
 CONFIG += c++11 warn_off
 
-*clang|*g++ {
-    QMAKE_CXXFLAGS_WARN_OFF -= -w
-    QMAKE_CXXFLAGS += -Wall
-    QMAKE_CXXFLAGS += \
-        -Wno-deprecated-declarations \
-        -Wno-unknown-pragmas
-}
-
 win32-msvc* {
     QMAKE_CXXFLAGS_WARN_OFF -= -W0
     QMAKE_CXXFLAGS += -W3
     QMAKE_LFLAGS += /NODEFAULTLIB:LIBCMT
+} else {
+    *clang|*g++ {
+        QMAKE_CXXFLAGS_WARN_OFF -= -w
+        QMAKE_CXXFLAGS += -Wall
+        QMAKE_CXXFLAGS += \
+            -Wno-deprecated-declarations \
+            -Wno-unknown-pragmas
+    }
 }
 
 DESTDIR = $$[QT_INSTALL_PLUGINS]/imageformats
@@ -55,23 +55,26 @@ CONFIG(debug, debug|release) {
 
 BUILD_LIBS_DIR = $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
 
-win32-msvc*:PRE_TARGETDEPS += \
-    $$PVRTEXLIB_PATH/PVRTexLib.lib \
-    $$BUILD_LIBS_DIR/PVRCore.lib \
-    $$BUILD_LIBS_DIR/PVRAssets.lib
-
-equals(PVRTEXLIB_STATIC, 1) {
-    linux|macx:PRE_TARGETDEPS += $$PVRTEXLIB_PATH/libPVRTexLib.a
+win32-msvc* {
+    PRE_TARGETDEPS += \
+        $$PVRTEXLIB_PATH/PVRTexLib.lib \
+        $$BUILD_LIBS_DIR/PVRCore.lib \
+        $$BUILD_LIBS_DIR/PVRAssets.lib
+} else {
+    equals(PVRTEXLIB_STATIC, 1) {
+        linux|macx:PRE_TARGETDEPS += $$PVRTEXLIB_PATH/libPVRTexLib.a
+    }
+    
+    *clang|*g++:PRE_TARGETDEPS += \
+        $$BUILD_LIBS_DIR/libPVRCore.a \
+        $$BUILD_LIBS_DIR/libPVRAssets.a
 }
-
-*clang|*g++:PRE_TARGETDEPS += \
-    $$BUILD_LIBS_DIR/libPVRCore.a \
-    $$BUILD_LIBS_DIR/libPVRAssets.a
 
 !win32-g++ {
     LIBS += -L$$PVRTEXLIB_PATH
     LIBS += -lPVRTexLib
 }
+
 LIBS += -L$$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
 LIBS += -lPVRCore -lPVRAssets 
 

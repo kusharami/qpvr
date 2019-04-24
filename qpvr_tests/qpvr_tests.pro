@@ -21,10 +21,13 @@ macx {
 }
 
 CONFIG += warn_off
-*clang|*g++ {
-    QMAKE_CXXFLAGS_WARN_OFF -= -w
-    QMAKE_CXXFLAGS += -Wall
-    QMAKE_CXXFLAGS += -Wno-unused-private-field
+win32-msvc* {
+} else {
+    *clang|*g++ {
+        QMAKE_CXXFLAGS_WARN_OFF -= -w
+        QMAKE_CXXFLAGS += -Wall
+        QMAKE_CXXFLAGS += -Wno-unused-private-field
+    }
 }
 
 include(../pvrdepend.pri)
