@@ -6,12 +6,12 @@
 #include <QSharedPointer>
 
 #include "PVRCore/Texture/TextureHeader.h"
-#include "PVRTexture.h"
 
 namespace pvr
 {
 class Texture;
 }
+class PVRTextureWrapper;
 
 class QPVRHandler : public QImageIOHandler
 {
@@ -68,8 +68,7 @@ private:
 
 	bool ensureScanned() const;
 	bool scanDevice() const;
-	bool writeTexture(const pvr::Texture &texture);
-	bool writeTexture(const pvrtexture::CPVRTexture &texture);
+	bool writeTexture(const PVRTextureWrapper &texture);
 
 	quint32 getCurrentMipLevel() const;
 	quint32 getCurrentArrayIndex() const;
@@ -77,7 +76,7 @@ private:
 
 	static void QImageTextureCleanup(void *ptr);
 
-	using TexturePtr = QSharedPointer<pvrtexture::CPVRTexture>;
+	using TexturePtr = QSharedPointer<PVRTextureWrapper>;
 	mutable TexturePtr mTexture;
 	QSize mScaledSize;
 	int mQuality;
