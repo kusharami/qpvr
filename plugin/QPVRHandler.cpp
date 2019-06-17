@@ -15,27 +15,84 @@
 
 #include <qlogging.h>
 
-static const int SUPPORTED_FORMATS[] = {
-	QPVRHandler::PVR2, //
-	QPVRHandler::PVR3, //
-	QPVRHandler::PVR2_PVRTC1_2, //
-	QPVRHandler::PVR3_PVRTC1_2, //
-	QPVRHandler::PVR2_PVRTC1_4, //
-	QPVRHandler::PVR3_PVRTC1_4, //
-	QPVRHandler::PVR2_PVRTC2_2, //
-	QPVRHandler::PVR3_PVRTC2_2, //
-	QPVRHandler::PVR2_PVRTC2_4, //
-	QPVRHandler::PVR3_PVRTC2_4, //
-	QPVRHandler::PVR2_ETC1, //
-	QPVRHandler::PVR3_ETC1, //
-	QPVRHandler::PVR3_ETC2, //
-};
-
 using namespace pvrtexture;
 using namespace pvr;
 using namespace assets;
 using namespace assetReaders;
 using namespace assetWriters;
+
+static const int SUPPORTED_FORMATS[] = {
+	QPVRHandler::PVR2,
+	QPVRHandler::PVR3,
+	QPVRHandler::PVR2_PVRTC1_2,
+	QPVRHandler::PVR3_PVRTC1_2,
+	QPVRHandler::PVR2_PVRTC1_4,
+	QPVRHandler::PVR3_PVRTC1_4,
+	QPVRHandler::PVR2_PVRTC2_2,
+	QPVRHandler::PVR3_PVRTC2_2,
+	QPVRHandler::PVR2_PVRTC2_4,
+	QPVRHandler::PVR3_PVRTC2_4,
+	QPVRHandler::PVR2_ETC1,
+	QPVRHandler::PVR3_ETC1,
+	QPVRHandler::PVR3_ETC2,
+};
+
+static const int SUPPORTED_IMAGE_FORMATS[] = {
+	QImage::Format_RGB32,
+	QImage::Format_ARGB32_Premultiplied,
+	QImage::Format_ARGB32,
+	QImage::Format_RGB16,
+	QImage::Format_RGB888,
+	QImage::Format_ARGB4444_Premultiplied,
+	QImage::Format_RGBX8888,
+	QImage::Format_RGBA8888_Premultiplied,
+	QImage::Format_RGBA8888,
+	QImage::Format_Alpha8,
+	QImage::Format_Grayscale8,
+};
+
+enum
+{
+	SUPPORTED_PFMT_COUNT = 10
+};
+
+static const int SUPPORTED_IMAGEFMT_PREMULT[SUPPORTED_PFMT_COUNT] = {
+	QImage::Format_Invalid,
+	QImage::Format_ARGB32_Premultiplied,
+	QImage::Format_Invalid,
+	QImage::Format_Invalid,
+	QImage::Format_ARGB4444_Premultiplied,
+	QImage::Format_Invalid,
+	QImage::Format_RGBA8888_Premultiplied,
+	QImage::Format_Invalid,
+	QImage::Format_Invalid,
+};
+
+static const int SUPPORTED_IMAGEFMT_UNPREMULT[SUPPORTED_PFMT_COUNT] = {
+	QImage::Format_RGB32,
+	QImage::Format_ARGB32,
+	QImage::Format_RGB16,
+	QImage::Format_RGB888,
+	QImage::Format_Invalid,
+	QImage::Format_RGBX8888,
+	QImage::Format_RGBA8888,
+	QImage::Format_Alpha8,
+	QImage::Format_Grayscale8,
+};
+
+static const PixelType SUPPORTED_PIXEL_TYPES[SUPPORTED_PFMT_COUNT] = {
+	PixelType('b', 'g', 'r', 'x', 8, 8, 8, 8),
+	PixelType('b', 'g', 'r', 'a', 8, 8, 8, 8),
+	PixelType('r', 'g', 'b', 0, 5, 6, 5, 0),
+	PixelType('r', 'g', 'b', 0, 8, 8, 8, 0),
+	PixelType('a', 'r', 'g', 'b', 4, 4, 4, 4),
+	PixelType('r', 'g', 'b', 'x', 8, 8, 8, 8),
+	PixelType('r', 'g', 'b', 'a', 8, 8, 8, 8),
+	PixelType('a', 0, 0, 0, 8, 0, 0, 0),
+	PixelType('l', 0, 0, 0, 8, 0, 0, 0),
+};
+
+static const QByteArray s_premultiplied = QByteArrayLiteral("premultiplied");
 
 QPVRHandler::QPVRHandler()
 	: mQuality(-1)
@@ -133,63 +190,49 @@ bool QPVRHandler::read(QImage *image)
 	return true;
 }
 
+static int pvrPixelTypeToImageFormat(quint64 pixelTypeId, bool premultiplied)
+{
+	for (int i = 0; i < SUPPORTED_PFMT_COUNT; i++)
+	{
+		if (pixelTypeId == SUPPORTED_PIXEL_TYPES[i].PixelTypeID)
+		{
+			if (premultiplied)
+				return SUPPORTED_IMAGEFMT_PREMULT[i];
+			return SUPPORTED_IMAGEFMT_UNPREMULT[i];
+		}
+	}
+
+	return QImage::Format_Invalid;
+}
+
 static bool imageFormatToPvrPixelType(
 	int format, PixelType *pixelTypePtr, bool *premultipliedPtr)
 {
+	if (format == QImage::Format_Invalid)
+		return false;
+
 	PixelType pixelType;
 	bool premultiplied = false;
-
-	switch (format)
+	bool found = false;
+	for (int i = 0; i < SUPPORTED_PFMT_COUNT; i++)
 	{
-		case QImage::Format_RGB32:
-			pixelType = PixelType('b', 'g', 'r', 'x', 8, 8, 8, 8);
-			break;
-
-		case QImage::Format_ARGB32_Premultiplied:
+		if (format == SUPPORTED_IMAGEFMT_PREMULT[i])
 		{
+			pixelType = SUPPORTED_PIXEL_TYPES[i];
 			premultiplied = true;
-			// fall through
+			found = true;
+			break;
 		}
-
-		case QImage::Format_ARGB32:
-			pixelType = PixelType('b', 'g', 'r', 'a', 8, 8, 8, 8);
+		if (format == SUPPORTED_IMAGEFMT_UNPREMULT[i])
+		{
+			pixelType = SUPPORTED_PIXEL_TYPES[i];
+			found = true;
 			break;
-
-		case QImage::Format_RGB16:
-			pixelType = PixelType('r', 'g', 'b', 0, 5, 6, 5, 0);
-			break;
-
-		case QImage::Format_RGB888:
-			pixelType = PixelType('r', 'g', 'b', 0, 8, 8, 8, 0);
-			break;
-
-		case QImage::Format_ARGB4444_Premultiplied:
-			premultiplied = true;
-			pixelType = PixelType('a', 'r', 'g', 'b', 4, 4, 4, 4);
-			break;
-
-		case QImage::Format_RGBX8888:
-			pixelType = PixelType('r', 'g', 'b', 'x', 8, 8, 8, 8);
-			break;
-
-		case QImage::Format_RGBA8888_Premultiplied:
-			premultiplied = true;
-
-		case QImage::Format_RGBA8888:
-			pixelType = PixelType('r', 'g', 'b', 'a', 8, 8, 8, 8);
-			break;
-
-		case QImage::Format_Alpha8:
-			pixelType = PixelType('a', 0, 0, 0, 8, 0, 0, 0);
-			break;
-
-		case QImage::Format_Grayscale8:
-			pixelType = PixelType('i', 0, 0, 0, 8, 0, 0, 0);
-			break;
-
-		default:
-			return false;
+		}
 	}
+
+	if (!found)
+		return false;
 
 	if (nullptr != pixelTypePtr)
 		*pixelTypePtr = pixelType;
@@ -355,7 +398,7 @@ QVariant QPVRHandler::option(ImageOption option) const
 		{
 			case SubType:
 				ensureScanned();
-				return formatToString(mFormat);
+				return subType(mFormat, mImageFormat);
 
 			case SupportedSubTypes:
 			{
@@ -417,21 +460,33 @@ void QPVRHandler::setOption(ImageOption option, const QVariant &value)
 		case SubType:
 		{
 			int format = value.toInt(&ok);
-
-			if (!ok)
-				format = stringToFormat(value.toString().toLatin1());
-
-			for (int f : SUPPORTED_FORMATS)
+			int imageFormat = QImage::Format_Invalid;
+			if (ok)
 			{
-				if (f == format)
+				ok = false;
+				for (int f : SUPPORTED_FORMATS)
 				{
-					mFormat = format;
-					return;
+					if (f == format)
+					{
+						ok = true;
+						break;
+					}
 				}
+			} else
+			{
+				ok = stringToFormat(
+					value.toString().toLatin1(), &format, &imageFormat);
 			}
 
-			qWarning(
-				"Unknown sub type '%s'.", value.toString().toLatin1().data());
+			if (ok)
+			{
+				mFormat = format;
+				mImageFormat = imageFormat;
+			} else
+			{
+				qWarning("Unknown sub type '%s'.",
+					value.toString().toLatin1().data());
+			}
 			break;
 		}
 
@@ -545,6 +600,9 @@ bool QPVRHandler::pvrPixelTypeHasAlpha(quint64 pixelTypeId)
 		}
 	} else
 	{
+		if (pixelFormat == PixelFormat::Intensity8)
+			return true;
+
 		for (quint8 i = 0; i < 4; i++)
 		{
 			if (pixelFormat.getChannelContent(i) == 'a')
@@ -557,12 +615,13 @@ bool QPVRHandler::pvrPixelTypeHasAlpha(quint64 pixelTypeId)
 	return false;
 }
 
-int QPVRHandler::stringToFormat(const QByteArray &str)
+bool QPVRHandler::stringToFormat(
+	const QByteArray &str, int *format, int *imageFormat)
 {
 	QList<QByteArray> split = str.split('.');
 
 	if (split.isEmpty())
-		return 0;
+		return false;
 
 	static const QByteArray s_pvr = QByteArrayLiteral("pvr");
 	static const QByteArray s_pvrtc = QByteArrayLiteral("pvrtc");
@@ -571,7 +630,7 @@ int QPVRHandler::stringToFormat(const QByteArray &str)
 	auto pvr = split.takeFirst();
 
 	if (pvr.length() != s_pvr.length() + 1 || !pvr.startsWith(s_pvr))
-		return 0;
+		return false;
 
 	int result = 0;
 
@@ -593,6 +652,84 @@ int QPVRHandler::stringToFormat(const QByteArray &str)
 		return result;
 
 	auto s = split.takeFirst();
+
+	if (split.length() <= 1)
+	{
+		PixelType pt;
+
+		int cnt = 0;
+		for (int i = 0, count = std::min(4, s.length()); i < count; i++)
+		{
+			quint8 c = quint8(s.at(i));
+			switch (c)
+			{
+				case 'r':
+				case 'g':
+				case 'b':
+				case 'a':
+				case 'x':
+				case 'i':
+				case 'l':
+					pt.PixelTypeChar[i] = quint8(c);
+					cnt++;
+					break;
+				default:
+					c = 0;
+					break;
+			}
+			if (c == 0)
+				break;
+		}
+		switch (cnt)
+		{
+			case 1:
+			case 3:
+			case 4:
+			{
+				for (int i = cnt, k = 4, count = s.length(); i < count;
+					 i++, k++)
+				{
+					char c = s.at(i);
+					switch (c)
+					{
+						case '4':
+						case '5':
+						case '6':
+						case '8':
+							pt.PixelTypeChar[k] = quint8(c - '0');
+							cnt++;
+							break;
+						default:
+							c = 0;
+							break;
+					}
+					if (c == 0)
+					{
+						cnt = -1;
+						break;
+					}
+				}
+				break;
+			}
+
+			default:
+				cnt = -1;
+				break;
+		}
+		if (cnt == s.length())
+		{
+			int iFmt = pvrPixelTypeToImageFormat(pt.PixelTypeID,
+				!split.isEmpty() && split.at(0) == s_premultiplied);
+			if (iFmt != QImage::Format_Invalid)
+			{
+				if (format)
+					*format = result;
+				if (imageFormat)
+					*imageFormat = iFmt;
+				return true;
+			}
+		}
+	}
 
 	int skip;
 	int suffix;
@@ -664,6 +801,9 @@ QByteArray QPVRHandler::formatToString(int format)
 	} else if (PVR2 == (format & PVR2))
 	{
 		result += QByteArrayLiteral("pvr2");
+	} else
+	{
+		return result;
 	}
 
 	bool compressed = false;
@@ -693,6 +833,54 @@ QByteArray QPVRHandler::formatToString(int format)
 	return result;
 }
 
+QByteArray QPVRHandler::subType(int format, int imageFormat)
+{
+	if (format == UnknownFormat ||
+		(PVR3 != (format & PVR3) && PVR2 != (format & PVR2)))
+	{
+		format |= PVR3;
+	}
+
+	auto result = formatToString(format);
+	switch (format)
+	{
+		case PVR2:
+		case PVR3:
+		{
+			if (imageFormat == QImage::Format_Invalid)
+				break;
+
+			PixelType pt;
+			bool premultiplied;
+			bool ok =
+				imageFormatToPvrPixelType(imageFormat, &pt, &premultiplied);
+			Q_ASSERT(ok);
+
+			result += '.';
+			for (int i = 0; i < 4; i++)
+			{
+				uint c = pt.PixelTypeChar[i];
+				if (c != 0)
+					result += char(c);
+			}
+			for (int i = 4; i < 8; i++)
+			{
+				uint c = pt.PixelTypeChar[i];
+				if (c != 0)
+					result += QByteArray::number(c);
+			}
+			if (premultiplied)
+				result += '.' + s_premultiplied;
+			break;
+		}
+
+		default:
+			break;
+	}
+
+	return result;
+}
+
 const QList<QByteArray> &QPVRHandler::supportedSubTypes()
 {
 	static QList<QByteArray> result;
@@ -702,6 +890,13 @@ const QList<QByteArray> &QPVRHandler::supportedSubTypes()
 		for (int fmt : SUPPORTED_FORMATS)
 		{
 			result.append(formatToString(fmt));
+			if (fmt == QPVRHandler::PVR2 || fmt == QPVRHandler::PVR3)
+			{
+				for (int iFmt : SUPPORTED_IMAGE_FORMATS)
+				{
+					result.append(subType(fmt, iFmt));
+				}
+			}
 		}
 	}
 
@@ -747,60 +942,55 @@ bool QPVRHandler::scanDevice() const
 
 		mFormat &= FileFormatMask;
 
-		if (pixelFormat == PixelFormat::RGB_565)
+		if (pixelFormat.isCompressedFormat())
 		{
-			cvtPixelFormat = pixelFormat;
+			switch (CompressedPixelFormat(pixelFormat.getPixelTypeId()))
+			{
+				case CompressedPixelFormat::PVRTCII_2bpp:
+				{
+					mFormat |= TEXV2;
+					// fall through
+				}
 
-			mImageFormat = QImage::Format_RGB16;
-		} else if (pixelFormat == PixelFormat::Intensity8)
-		{
-			cvtPixelFormat = pixelFormat;
+				case CompressedPixelFormat::PVRTCI_2bpp_RGBA:
+				case CompressedPixelFormat::PVRTCI_2bpp_RGB:
+					mFormat |= PVRTC;
+					break;
 
-			mImageFormat = QImage::Format_Grayscale8;
+				case CompressedPixelFormat::PVRTCII_4bpp:
+				{
+					mFormat |= TEXV2;
+					// fall through
+				}
+
+				case CompressedPixelFormat::PVRTCI_4bpp_RGBA:
+				case CompressedPixelFormat::PVRTCI_4bpp_RGB:
+					mFormat |= PVRTC | TEXBIT4;
+					break;
+
+				case CompressedPixelFormat::ETC2_RGBA:
+				case CompressedPixelFormat::ETC2_RGB_A1:
+				{
+					mFormat |= TEXV2;
+					// fall through
+				}
+
+				case CompressedPixelFormat::ETC1:
+					mFormat |= ETC;
+					break;
+
+				default:
+					break;
+			}
+			mImageFormat = QImage::Format_Invalid;
 		} else
 		{
-			if (pixelFormat.isCompressedFormat())
-			{
-				switch (CompressedPixelFormat(pixelFormat.getPixelTypeId()))
-				{
-					case CompressedPixelFormat::PVRTCII_2bpp:
-					{
-						mFormat |= TEXV2;
-						// fall through
-					}
+			mImageFormat = pvrPixelTypeToImageFormat(
+				pixelFormat.getPixelTypeId(), isPremultiplied);
+		}
 
-					case CompressedPixelFormat::PVRTCI_2bpp_RGBA:
-					case CompressedPixelFormat::PVRTCI_2bpp_RGB:
-						mFormat |= PVRTC;
-						break;
-
-					case CompressedPixelFormat::PVRTCII_4bpp:
-					{
-						mFormat |= TEXV2;
-						// fall through
-					}
-
-					case CompressedPixelFormat::PVRTCI_4bpp_RGBA:
-					case CompressedPixelFormat::PVRTCI_4bpp_RGB:
-						mFormat |= PVRTC | TEXBIT4;
-						break;
-
-					case CompressedPixelFormat::ETC2_RGBA:
-					case CompressedPixelFormat::ETC2_RGB_A1:
-					{
-						mFormat |= TEXV2;
-						// fall through
-					}
-
-					case CompressedPixelFormat::ETC1:
-						mFormat |= ETC;
-						break;
-
-					default:
-						break;
-				}
-			}
-
+		if (mImageFormat == QImage::Format_Invalid)
+		{
 			if (pvrPixelTypeHasAlpha(pixelFormat.getPixelTypeId()))
 			{
 				cvtPixelFormat = PixelFormat::RGBA_8888;
@@ -814,6 +1004,9 @@ bool QPVRHandler::scanDevice() const
 
 				mImageFormat = QImage::Format_RGB888;
 			}
+		} else
+		{
+			cvtPixelFormat = pixelFormat;
 		}
 
 		CPVRTextureHeader header(pixelFormat.getPixelTypeId(), tex.getHeight(),

@@ -62,8 +62,10 @@ public:
 private:
 	static bool pvrPixelTypeHasAlpha(quint64 pixelTypeId);
 
-	static int stringToFormat(const QByteArray &str);
+	static bool stringToFormat(
+		const QByteArray &str, int *format, int *imageFormat);
 	static QByteArray formatToString(int format);
+	static QByteArray subType(int format, int imageFormat);
 	static const QList<QByteArray> &supportedSubTypes();
 
 	bool ensureScanned() const;
