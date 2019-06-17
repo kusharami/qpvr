@@ -746,12 +746,12 @@ bool QPVRHandler::stringToFormat(
 		suffix = 1;
 	} else
 	{
-		return 0;
+		return false;
 	}
 
 	if (s.length() != skip + suffix)
 	{
-		return 0;
+		return false;
 	}
 
 	switch (s.at(skip))
@@ -764,7 +764,7 @@ bool QPVRHandler::stringToFormat(
 			break;
 
 		default:
-			return 0;
+			return false;
 	}
 
 	if (suffix >= 3)
@@ -779,16 +779,20 @@ bool QPVRHandler::stringToFormat(
 				break;
 
 			default:
-				return 0;
+				return false;
 		}
 	}
 
 	if (!split.isEmpty())
 	{
-		s = split.takeFirst();
+		return false;
 	}
 
-	return result;
+	if (format)
+		*format = result;
+	if (imageFormat)
+		*imageFormat = QImage::Format_Invalid;
+	return true;
 }
 
 QByteArray QPVRHandler::formatToString(int format)

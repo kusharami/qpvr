@@ -24,11 +24,11 @@ struct PVRTests::Options
 };
 
 const PVRTests::Options PVRTests::Options::OPTIONS[] = {
-	{ -1, 2, QByteArray(), QImageIOHandler::TransformationNone,
+	{ -1, 2, QByteArray("rgba8888"), QImageIOHandler::TransformationNone,
 		QImage::Format_RGBA8888 },
-	{ -1, 2, QByteArray(), QImageIOHandler::TransformationFlip,
+	{ -1, 2, QByteArray("rgba8888"), QImageIOHandler::TransformationFlip,
 		QImage::Format_RGBA8888 },
-	{ -1, 3, QByteArray(), QImageIOHandler::TransformationMirror,
+	{ -1, 3, QByteArray("rgba8888"), QImageIOHandler::TransformationMirror,
 		QImage::Format_RGBA8888 },
 	{ 80, 2, QByteArrayLiteral("pvrtc2_2"), QImageIOHandler::TransformationNone,
 		QImage::Format_RGBA8888 },
