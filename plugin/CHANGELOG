@@ -1,6 +1,10 @@
 PVR image format plugin for Qt
 ==============================
 
+v1.1.1  24.04.2019
+	[NEW] Support compilation for Mingw 32 and 64 bit.
+    [FIX] Fix remove premultiplied flag
+
 v1.1.0  27.03.2019    
 	[REFINE] Removed CCZ support because of separate CCZ 
 		image container plugin.

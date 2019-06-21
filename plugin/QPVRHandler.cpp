@@ -9,13 +9,10 @@
 #include "PVRAssets/FileIO/TextureWriterLegacyPVR.h"
 
 #include "QIODevicePVRAdapter.h"
-#include "PVRTTexture.h"
-#include "PVRTextureFormat.h"
-#include "PVRTextureUtilities.h"
+#include "PVRTextureWrapper.h"
 
 #include <qlogging.h>
 
-using namespace pvrtexture;
 using namespace pvr;
 using namespace assets;
 using namespace assetReaders;
@@ -80,16 +77,16 @@ static const int SUPPORTED_IMAGEFMT_UNPREMULT[SUPPORTED_PFMT_COUNT] = {
 	QImage::Format_Grayscale8,
 };
 
-static const PixelType SUPPORTED_PIXEL_TYPES[SUPPORTED_PFMT_COUNT] = {
-	PixelType('b', 'g', 'r', 'x', 8, 8, 8, 8),
-	PixelType('b', 'g', 'r', 'a', 8, 8, 8, 8),
-	PixelType('r', 'g', 'b', 0, 5, 6, 5, 0),
-	PixelType('r', 'g', 'b', 0, 8, 8, 8, 0),
-	PixelType('a', 'r', 'g', 'b', 4, 4, 4, 4),
-	PixelType('r', 'g', 'b', 'x', 8, 8, 8, 8),
-	PixelType('r', 'g', 'b', 'a', 8, 8, 8, 8),
-	PixelType('a', 0, 0, 0, 8, 0, 0, 0),
-	PixelType('l', 0, 0, 0, 8, 0, 0, 0),
+static const PixelFormat SUPPORTED_PIXEL_TYPES[SUPPORTED_PFMT_COUNT] = {
+	PixelFormat('b', 'g', 'r', 'x', 8, 8, 8, 8),
+	PixelFormat('b', 'g', 'r', 'a', 8, 8, 8, 8),
+	PixelFormat('r', 'g', 'b', 0, 5, 6, 5, 0),
+	PixelFormat('r', 'g', 'b', 0, 8, 8, 8, 0),
+	PixelFormat('a', 'r', 'g', 'b', 4, 4, 4, 4),
+	PixelFormat('r', 'g', 'b', 'x', 8, 8, 8, 8),
+	PixelFormat('r', 'g', 'b', 'a', 8, 8, 8, 8),
+	PixelFormat('a', 0, 0, 0, 8, 0, 0, 0),
+	PixelFormat('l', 0, 0, 0, 8, 0, 0, 0),
 };
 
 static const QByteArray s_premultiplied = QByteArrayLiteral("premultiplied");
@@ -173,8 +170,8 @@ bool QPVRHandler::read(QImage *image)
 	int bytesPerLine =
 		int(mTexture->getDataSize(mipLevel, false, false) / quint32(height));
 
-	*image = QImage(
-		(const uchar *) mTexture->getDataPtr(mipLevel, arrayIndex, faceIndex),
+	*image = QImage((const uchar *) mTexture->getDataPointer(
+						mipLevel, arrayIndex, faceIndex),
 		width, height, bytesPerLine, QImage::Format(mImageFormat),
 		&QPVRHandler::QImageTextureCleanup, new TexturePtr(mTexture));
 
@@ -194,38 +191,37 @@ static int pvrPixelTypeToImageFormat(quint64 pixelTypeId, bool premultiplied)
 {
 	for (int i = 0; i < SUPPORTED_PFMT_COUNT; i++)
 	{
-		if (pixelTypeId == SUPPORTED_PIXEL_TYPES[i].PixelTypeID)
+		if (pixelTypeId == SUPPORTED_PIXEL_TYPES[i].getPixelTypeId())
 		{
 			if (premultiplied)
 				return SUPPORTED_IMAGEFMT_PREMULT[i];
 			return SUPPORTED_IMAGEFMT_UNPREMULT[i];
 		}
 	}
-
 	return QImage::Format_Invalid;
 }
 
 static bool imageFormatToPvrPixelType(
-	int format, PixelType *pixelTypePtr, bool *premultipliedPtr)
+	int format, PixelFormat *pixelTypePtr, bool *premultipliedPtr)
 {
 	if (format == QImage::Format_Invalid)
 		return false;
 
-	PixelType pixelType;
+	PixelFormat pixelFormat;
 	bool premultiplied = false;
 	bool found = false;
 	for (int i = 0; i < SUPPORTED_PFMT_COUNT; i++)
 	{
 		if (format == SUPPORTED_IMAGEFMT_PREMULT[i])
 		{
-			pixelType = SUPPORTED_PIXEL_TYPES[i];
+			pixelFormat = SUPPORTED_PIXEL_TYPES[i];
 			premultiplied = true;
 			found = true;
 			break;
 		}
 		if (format == SUPPORTED_IMAGEFMT_UNPREMULT[i])
 		{
-			pixelType = SUPPORTED_PIXEL_TYPES[i];
+			pixelFormat = SUPPORTED_PIXEL_TYPES[i];
 			found = true;
 			break;
 		}
@@ -235,7 +231,7 @@ static bool imageFormatToPvrPixelType(
 		return false;
 
 	if (nullptr != pixelTypePtr)
-		*pixelTypePtr = pixelType;
+		*pixelTypePtr = pixelFormat;
 
 	if (nullptr != premultipliedPtr)
 		*premultipliedPtr = premultiplied;
@@ -256,7 +252,7 @@ bool QPVRHandler::write(const QImage &image)
 		mFormat = PVR3;
 	}
 
-	PixelType pixelType;
+	PixelFormat pixelType;
 	bool isPremultiplied = false;
 	QImage img = image;
 
@@ -307,18 +303,13 @@ bool QPVRHandler::write(const QImage &image)
 	int width = img.width();
 	int height = img.height();
 
-	CPVRTextureHeader header(pixelType.PixelTypeID, height, width, 1, 1, 1, 1,
-		ePVRTCSpacelRGB, ePVRTVarTypeUnsignedByteNorm, isPremultiplied);
-
-	header.setOrientation(EPVRTOrientation(mOrientation));
-
-	CPVRTexture texture(header);
+	PVRTextureWrapper texture(
+		pixelType, width, height, mOrientation, isPremultiplied);
 
 	int widthBytes = img.width() * pixelSize;
 	int pvrWidthBytes =
-		int(header.getDataSize(PVRTEX_TOPMIPLEVEL, false, false)) /
-		quint32(img.height());
-	auto pvrPtr = reinterpret_cast<char *>(texture.getDataPtr());
+		int(texture.getDataSize(0, false, false)) / quint32(img.height());
+	auto pvrPtr = reinterpret_cast<char *>(texture.getDataPointer());
 
 	for (int y = 0; y < height; y++)
 	{
@@ -331,7 +322,7 @@ bool QPVRHandler::write(const QImage &image)
 	bool texV2 = 0 != (mFormat & TEXV2);
 	bool tex4bpp = 0 != (mFormat & TEXBIT4);
 
-	PixelType outputPixelType = pixelType;
+	PixelFormat outputPixelType = pixelType;
 	ECompressorQuality quality = ePVRTCFastest;
 
 	if (0 != (mFormat & ETC))
@@ -349,16 +340,16 @@ bool QPVRHandler::write(const QImage &image)
 
 		if (texV2)
 		{
-			if (pvrPixelTypeHasAlpha(outputPixelType.PixelTypeID))
+			if (pvrPixelTypeHasAlpha(outputPixelType.getPixelTypeId()))
 			{
-				outputPixelType = ePVRTPF_ETC2_RGBA;
+				outputPixelType = CompressedPixelFormat::ETC2_RGBA;
 			} else
 			{
-				outputPixelType = ePVRTPF_ETC2_RGB;
+				outputPixelType = CompressedPixelFormat::ETC2_RGB;
 			}
 		} else
 		{
-			outputPixelType = ePVRTPF_ETC1;
+			outputPixelType = CompressedPixelFormat::ETC1;
 		}
 	} else if (0 != (mFormat & PVRTC))
 	{
@@ -367,22 +358,20 @@ bool QPVRHandler::write(const QImage &image)
 
 		if (texV2)
 		{
-			outputPixelType =
-				tex4bpp ? ePVRTPF_PVRTCII_4bpp : ePVRTPF_PVRTCII_2bpp;
-		} else if (pvrPixelTypeHasAlpha(outputPixelType.PixelTypeID))
+			outputPixelType = tex4bpp ? CompressedPixelFormat::PVRTCII_4bpp
+									  : CompressedPixelFormat::PVRTCII_2bpp;
+		} else if (pvrPixelTypeHasAlpha(outputPixelType.getPixelTypeId()))
 		{
-			outputPixelType =
-				tex4bpp ? ePVRTPF_PVRTCI_4bpp_RGBA : ePVRTPF_PVRTCI_2bpp_RGBA;
+			outputPixelType = tex4bpp ? CompressedPixelFormat::PVRTCI_4bpp_RGBA
+									  : CompressedPixelFormat::PVRTCI_2bpp_RGBA;
 		} else
 		{
-			outputPixelType =
-				tex4bpp ? ePVRTPF_PVRTCI_4bpp_RGB : ePVRTPF_PVRTCI_2bpp_RGB;
+			outputPixelType = tex4bpp ? CompressedPixelFormat::PVRTCI_4bpp_RGB
+									  : CompressedPixelFormat::PVRTCI_2bpp_RGB;
 		}
 	}
 
-	if (pixelType.PixelTypeID == outputPixelType.PixelTypeID ||
-		Transcode(texture, outputPixelType, texture.getChannelType(),
-			texture.getColourSpace(), quality))
+	if (texture.transcode(outputPixelType, quality))
 	{
 		return writeTexture(texture);
 	}
@@ -430,12 +419,14 @@ QVariant QPVRHandler::option(ImageOption option) const
 
 				Transformations t;
 
-				if (ePVRTOrientLeft == (ePVRTOrientLeft & mOrientation))
+				if (TextureMetaData::AxisOrientationLeft ==
+					(TextureMetaData::AxisOrientationLeft & mOrientation))
 				{
 					t |= TransformationMirror;
 				}
 
-				if (ePVRTOrientUp == (ePVRTOrientUp & mOrientation))
+				if (TextureMetaData::AxisOrientationUp ==
+					(TextureMetaData::AxisOrientationUp & mOrientation))
 				{
 					t |= TransformationFlip;
 				}
@@ -655,7 +646,12 @@ bool QPVRHandler::stringToFormat(
 
 	if (split.length() <= 1)
 	{
-		PixelType pt;
+		union
+		{
+			quint8 pt[8];
+			quint64 pixelTypeId;
+		};
+		pixelTypeId = 0;
 
 		int cnt = 0;
 		for (int i = 0, count = std::min(4, s.length()); i < count; i++)
@@ -670,7 +666,7 @@ bool QPVRHandler::stringToFormat(
 				case 'x':
 				case 'i':
 				case 'l':
-					pt.PixelTypeChar[i] = quint8(c);
+					pt[i] = quint8(c);
 					cnt++;
 					break;
 				default:
@@ -696,7 +692,7 @@ bool QPVRHandler::stringToFormat(
 						case '5':
 						case '6':
 						case '8':
-							pt.PixelTypeChar[k] = quint8(c - '0');
+							pt[k] = quint8(c - '0');
 							cnt++;
 							break;
 						default:
@@ -718,7 +714,7 @@ bool QPVRHandler::stringToFormat(
 		}
 		if (cnt == s.length())
 		{
-			int iFmt = pvrPixelTypeToImageFormat(pt.PixelTypeID,
+			int iFmt = pvrPixelTypeToImageFormat(pixelTypeId,
 				!split.isEmpty() && split.at(0) == s_premultiplied);
 			if (iFmt != QImage::Format_Invalid)
 			{
@@ -854,22 +850,22 @@ QByteArray QPVRHandler::subType(int format, int imageFormat)
 			if (imageFormat == QImage::Format_Invalid)
 				break;
 
-			PixelType pt;
+			PixelFormat pt;
 			bool premultiplied;
 			bool ok =
 				imageFormatToPvrPixelType(imageFormat, &pt, &premultiplied);
 			Q_ASSERT(ok);
 
 			result += '.';
-			for (int i = 0; i < 4; i++)
+			for (quint8 i = 0; i < 4; i++)
 			{
-				uint c = pt.PixelTypeChar[i];
+				char c = pt.getChannelContent(i);
 				if (c != 0)
-					result += char(c);
+					result += c;
 			}
-			for (int i = 4; i < 8; i++)
+			for (quint8 i = 0; i < 4; i++)
 			{
-				uint c = pt.PixelTypeChar[i];
+				uint c = pt.getChannelBits(i);
 				if (c != 0)
 					result += QByteArray::number(c);
 			}
@@ -928,21 +924,21 @@ bool QPVRHandler::scanDevice() const
 	quint32 signature;
 	device()->peek(reinterpret_cast<char *>(&signature), 4);
 
-	Texture tex;
+	TexturePtr texture(new PVRTextureWrapper);
 	bool readOk;
 	{
 		Stream::ptr_type stream(new QIODevicePVRAdapter(device()));
 		TextureReaderPVR reader(stream);
 
-		readOk = reader.readAsset(tex);
+		readOk = reader.readAsset(*texture.data());
 	} // destroy reader and stream adapter
 
 	if (readOk)
 	{
-		auto pixelFormat = tex.getPixelFormat();
+		auto pixelFormat = texture->getPixelFormat();
 		PixelFormat cvtPixelFormat;
 
-		bool isPremultiplied = tex.isPreMultiplied();
+		bool isPremultiplied = texture->isPreMultiplied();
 
 		mFormat &= FileFormatMask;
 
@@ -1013,31 +1009,14 @@ bool QPVRHandler::scanDevice() const
 			cvtPixelFormat = pixelFormat;
 		}
 
-		CPVRTextureHeader header(pixelFormat.getPixelTypeId(), tex.getHeight(),
-			tex.getWidth(), tex.getDepth(), tex.getNumberOfMIPLevels(),
-			tex.getNumberOfArrayMembers(), tex.getNumberOfFaces(),
-			(EPVRTColourSpace) tex.getColorSpace(),
-			(EPVRTVariableType) tex.getChannelType(), isPremultiplied);
-
-		int orientation = tex.getOrientation(TextureMetaData::AxisAxisX) |
-			tex.getOrientation(TextureMetaData::AxisAxisY) |
-			tex.getOrientation(TextureMetaData::AxisAxisZ);
-
-		header.setOrientation((EPVRTOrientation) orientation);
-
-		TexturePtr texture(new CPVRTexture(header, tex.getDataPointer()));
-
-		if ((cvtPixelFormat == pixelFormat &&
-				tex.getColorSpace() == types::ColorSpace::lRGB &&
-				tex.getChannelType() == VariableType::UnsignedByteNorm) ||
-			Transcode(*texture.data(), cvtPixelFormat.getPixelTypeId(),
-				ePVRTVarTypeUnsignedByteNorm, ePVRTCSpacelRGB,
-				ECompressorQuality(0)))
+		if (texture->transcode(cvtPixelFormat, ECompressorQuality(0)))
 		{
 			mFormat |=
 				(signature == TextureHeader::Header::PVRv3) ? PVR3 : PVR2;
 			mImageCurrentIndex = 0;
-			mOrientation = orientation;
+			mOrientation = texture->getOrientation(TextureMetaData::AxisAxisX) |
+				texture->getOrientation(TextureMetaData::AxisAxisY) |
+				texture->getOrientation(TextureMetaData::AxisAxisZ);
 			mTexture = texture;
 			return true;
 		}
@@ -1046,7 +1025,7 @@ bool QPVRHandler::scanDevice() const
 	return false;
 }
 
-bool QPVRHandler::writeTexture(const Texture &texture)
+bool QPVRHandler::writeTexture(const PVRTextureWrapper &texture)
 {
 	std::unique_ptr<AssetWriter<Texture>> writerPtr;
 
@@ -1075,40 +1054,15 @@ bool QPVRHandler::writeTexture(const Texture &texture)
 	return result;
 }
 
-bool QPVRHandler::writeTexture(const CPVRTexture &texture)
-{
-	auto &oldHeader = texture.getHeader();
-
-	TextureHeader header(oldHeader.getPixelType().PixelTypeID,
-		oldHeader.getWidth(), oldHeader.getHeight(), oldHeader.getDepth(),
-		oldHeader.getNumMIPLevels(),
-		types::ColorSpace(oldHeader.getColourSpace()),
-		VariableType(oldHeader.getChannelType()),
-		oldHeader.getNumArrayMembers(), oldHeader.getNumFaces());
-
-	header.setOrientation(
-		TextureMetaData::AxisOrientation(oldHeader.getOrientation(ePVRTAxisX) |
-			oldHeader.getOrientation(ePVRTAxisY) |
-			oldHeader.getOrientation(ePVRTAxisZ)));
-	auto cubeMapOrder = oldHeader.getCubeMapOrder();
-
-	if (!cubeMapOrder.empty())
-		header.setCubeMapOrder(cubeMapOrder.c_str());
-
-	header.setIsPreMultiplied(oldHeader.isPreMultiplied());
-
-	return writeTexture(Texture(header, (const quint8 *) texture.getDataPtr()));
-}
-
 quint32 QPVRHandler::getCurrentMipLevel() const
 {
 	if (!mScaledSize.isValid() || mScaledSize.isNull())
-		return PVRTEX_TOPMIPLEVEL;
+		return 0;
 
-	auto lastMipLevel = PVRTEX_TOPMIPLEVEL;
-	lastMipLevel += mTexture->getNumMIPLevels();
+	auto lastMipLevel = 0;
+	lastMipLevel += mTexture->getNumberOfMIPLevels();
 
-	for (auto level = PVRTEX_TOPMIPLEVEL; level < lastMipLevel; level++)
+	for (auto level = 0; level < lastMipLevel; level++)
 	{
 		if (mTexture->getWidth(level) == uint(mScaledSize.width()) &&
 			mTexture->getHeight(level) == uint(mScaledSize.height()))
@@ -1117,20 +1071,20 @@ quint32 QPVRHandler::getCurrentMipLevel() const
 		}
 	}
 
-	return PVRTEX_TOPMIPLEVEL;
+	return 0;
 }
 
 quint32 QPVRHandler::getCurrentArrayIndex() const
 {
 	quint32 curIndex = quint32(mImageCurrentIndex);
-	quint32 numFaces = mTexture->getNumFaces();
+	quint32 numFaces = mTexture->getNumberOfFaces();
 	return curIndex / numFaces;
 }
 
 quint32 QPVRHandler::getCurrentFaceIndex() const
 {
 	quint32 curIndex = quint32(mImageCurrentIndex);
-	quint32 numFaces = mTexture->getNumFaces();
+	quint32 numFaces = mTexture->getNumberOfArrayMembers();
 	return curIndex % numFaces;
 }
 
@@ -1139,9 +1093,7 @@ int QPVRHandler::imageCount() const
 	if (!ensureScanned())
 		return 0;
 
-	auto &header = mTexture->getHeader();
-
-	return header.getNumArrayMembers() * header.getNumFaces();
+	return mTexture->getNumberOfArrayMembers() * mTexture->getNumberOfFaces();
 }
 
 int QPVRHandler::currentImageNumber() const

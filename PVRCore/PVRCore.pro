@@ -1,43 +1,8 @@
-#-------------------------------------------------
-#
-# Project created by QtCreator 2017-05-19T12:04:44
-#
-#-------------------------------------------------
-
-QT       -= core gui
-
 TARGET = PVRCore
-TEMPLATE = lib
-CONFIG += staticlib
 
-CONFIG(debug, debug|release) {
-    CONFIG_DIR = Debug
-} else {
-    CONFIG_DIR = Release
-}
+include(../PVRLib.pri)
 
-DESTDIR = $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
-
-CONFIG += c++11 warn_off
-
-macx {
-    DEFINES += "TARGET_OS_MAC=1"
-}
-
-unix|win32-g++ {
-    QMAKE_CXXFLAGS_WARN_OFF -= -w
-    QMAKE_CXXFLAGS += -Wall
-    QMAKE_CXXFLAGS += \
-        -Wno-unknown-pragmas
-} else {
-    win32 {
-        QMAKE_CXXFLAGS_WARN_OFF -= -W0
-        QMAKE_CXXFLAGS += -W3
-        DEFINES += _CRT_SECURE_NO_WARNINGS _MBCS
-        DEFINES -= UNICODE
-        DEFINES -= _UNICODE
-    }
-}
+INCLUDEPATH += ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore
 
 HEADERS += \
     ../thirdparty/PowerVR_Native_SDK/External/pugixml/pugiconfig.hpp \
@@ -143,7 +108,3 @@ win32 {
         ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore/Windows/WindowsResourceStream.cpp
 }
 
-INCLUDEPATH += \
-    ../thirdparty/PowerVR_Native_SDK/Framework \
-    ../thirdparty/PowerVR_Native_SDK/Framework/PVRCore \
-    ../thirdparty/PowerVR_Native_SDK/Builds/Include
