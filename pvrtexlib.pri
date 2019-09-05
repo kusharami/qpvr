@@ -20,7 +20,7 @@ win32-msvc* {
 }
 
 win32|linux {
-    contains(QMAKE_HOST.arch, x86_64) {
+    equals(QT_ARCH, x86_64) {
         PVRTEXLIB_PREFIX = x86_64/$$PVRTEXLIB_CONFIG
     } else {
         PVRTEXLIB_PREFIX = x86_32/$$PVRTEXLIB_CONFIG

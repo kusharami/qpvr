@@ -17,12 +17,12 @@ macx {
     DEFINES += "TARGET_OS_MAC=1"
 }
 
-win32-msvc* {
+msvc {
     QMAKE_CXXFLAGS_WARN_OFF -= -W0
     QMAKE_CXXFLAGS += -W3
     DEFINES += _CRT_SECURE_NO_WARNINGS _MBCS
 } else {
-    *clang|*g++ {
+    clang|gcc {
         QMAKE_CXXFLAGS_WARN_OFF -= -w
         QMAKE_CXXFLAGS += -Wall -fpermissive
         QMAKE_CXXFLAGS += \
@@ -32,17 +32,14 @@ win32-msvc* {
             -Wno-unused-local-typedefs \
             -Wno-switch \
     
-        *clang:QMAKE_CXXFLAGS += \
+        clang:QMAKE_CXXFLAGS += \
             -Wno-sometimes-uninitialized
-        *g++:QMAKE_CXXFLAGS += \
+        else:gcc:QMAKE_CXXFLAGS += \
             -Wno-maybe-uninitialized
     
         win32 {
             DEFINES += _WIN32_WINNT=0x600
-            contains(QMAKE_HOST.arch, x86_64) {
-            } else {
-                QMAKE_CXXFLAGS += -msse2
-            }
+            !equals(QT_ARCH, x86_64):QMAKE_CXXFLAGS += -msse2
         }
     }
 }

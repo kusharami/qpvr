@@ -1,4 +1,4 @@
-VERSION = 1.1.1
+VERSION = 1.2.0
 
 TARGET = qpvr
 
@@ -7,12 +7,12 @@ CONFIG += plugin
 
 CONFIG += c++11 warn_off
 
-win32-msvc* {
+msvc {
     QMAKE_CXXFLAGS_WARN_OFF -= -W0
     QMAKE_CXXFLAGS += -W3
     QMAKE_LFLAGS += /NODEFAULTLIB:LIBCMT
 } else {
-    *clang|*g++ {
+    clang|gcc {
         QMAKE_CXXFLAGS_WARN_OFF -= -w
         QMAKE_CXXFLAGS += -Wall
         QMAKE_CXXFLAGS += \
@@ -55,7 +55,7 @@ CONFIG(debug, debug|release) {
 
 BUILD_LIBS_DIR = $$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
 
-win32-msvc* {
+msvc {
     PRE_TARGETDEPS += \
         $$PVRTEXLIB_PATH/PVRTexLib.lib \
         $$BUILD_LIBS_DIR/PVRCore.lib \
@@ -65,7 +65,7 @@ win32-msvc* {
         linux|macx:PRE_TARGETDEPS += $$PVRTEXLIB_PATH/libPVRTexLib.a
     }
     
-    *clang|*g++:PRE_TARGETDEPS += \
+    clang|gcc:PRE_TARGETDEPS += \
         $$BUILD_LIBS_DIR/libPVRCore.a \
         $$BUILD_LIBS_DIR/libPVRAssets.a
 }
@@ -73,6 +73,7 @@ win32-msvc* {
 !win32-g++ {
     LIBS += -L$$PVRTEXLIB_PATH
     LIBS += -lPVRTexLib
+    INCLUDEPATH += ../thirdparty/PVRTexLib/Include
 }
 
 LIBS += -L$$_PRO_FILE_PWD_/../build/$$CONFIG_DIR
@@ -81,8 +82,6 @@ LIBS += -lPVRCore -lPVRAssets
 OTHER_FILES += pvr.json
 
 INCLUDEPATH += ../thirdparty/PowerVR_Native_SDK/Framework
-
-!win32-g++:INCLUDEPATH += ../thirdparty/PVRTexLib/Include
 
 PLUGIN_TYPE = imageformats
 PLUGIN_CLASS_NAME = QPVRPlugin

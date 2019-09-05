@@ -21,9 +21,9 @@ macx {
 }
 
 CONFIG += warn_off
-win32-msvc* {
+msvc {
 } else {
-    *clang|*g++ {
+    clang|gcc {
         QMAKE_CXXFLAGS_WARN_OFF -= -w
         QMAKE_CXXFLAGS += -Wall
         QMAKE_CXXFLAGS += -Wno-unused-private-field
