@@ -1,6 +1,9 @@
 PVR image format plugin for Qt
 ==============================
 
+v1.2.0	05.09.2019
+	[NEW] Supported RGB image sub types.
+
 v1.1.1  24.04.2019
 	[NEW] Support compilation for Mingw 32 and 64 bit.
     [FIX] Fix remove premultiplied flag
