@@ -15,7 +15,7 @@ equals(PVRTEXLIB_CONFIG, "Dynamic") {
     win32 {
         QMAKE_POST_LINK += \
             copy /y \"$$shell_path($$PVRTEXLIB_PATH/PVRTexLib.dll)\" \
-            \"$$shell_path($$BIN_DIR)\"
+            \"$$shell_path($$BIN_DIR)\" $$escape_expand(\n\t)
     }
 
     macx {
