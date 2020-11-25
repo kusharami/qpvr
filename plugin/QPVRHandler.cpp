@@ -23,15 +23,29 @@ static const int SUPPORTED_FORMATS[] = {
 	QPVRHandler::PVR3,
 	QPVRHandler::PVR2_PVRTC1_2,
 	QPVRHandler::PVR3_PVRTC1_2,
+	QPVRHandler::PVR2_PVRTC1_2_NOALPHA,
+	QPVRHandler::PVR3_PVRTC1_2_NOALPHA,
+	QPVRHandler::PVR2_PVRTC1_2_PREMULTIPLIED,
+	QPVRHandler::PVR3_PVRTC1_2_PREMULTIPLIED,
 	QPVRHandler::PVR2_PVRTC1_4,
 	QPVRHandler::PVR3_PVRTC1_4,
+	QPVRHandler::PVR2_PVRTC1_4_NOALPHA,
+	QPVRHandler::PVR3_PVRTC1_4_NOALPHA,
+	QPVRHandler::PVR2_PVRTC1_4_PREMULTIPLIED,
+	QPVRHandler::PVR3_PVRTC1_4_PREMULTIPLIED,
 	QPVRHandler::PVR2_PVRTC2_2,
 	QPVRHandler::PVR3_PVRTC2_2,
 	QPVRHandler::PVR2_PVRTC2_4,
 	QPVRHandler::PVR3_PVRTC2_4,
+	QPVRHandler::PVR2_PVRTC2_2_PREMULTIPLIED,
+	QPVRHandler::PVR3_PVRTC2_2_PREMULTIPLIED,
+	QPVRHandler::PVR2_PVRTC2_4_PREMULTIPLIED,
+	QPVRHandler::PVR3_PVRTC2_4_PREMULTIPLIED,
 	QPVRHandler::PVR2_ETC1,
 	QPVRHandler::PVR3_ETC1,
 	QPVRHandler::PVR3_ETC2,
+	QPVRHandler::PVR3_ETC2_NOALPHA,
+	QPVRHandler::PVR3_ETC2_PREMULTIPLIED,
 };
 
 static const int SUPPORTED_IMAGE_FORMATS[] = {
@@ -90,6 +104,7 @@ static const PixelFormat SUPPORTED_PIXEL_TYPES[SUPPORTED_PFMT_COUNT] = {
 };
 
 static const QByteArray s_premultiplied = QByteArrayLiteral("premultiplied");
+static const QByteArray s_noalpha = QByteArrayLiteral("noalpha");
 
 QPVRHandler::QPVRHandler()
 	: mQuality(-1)
@@ -260,6 +275,22 @@ bool QPVRHandler::write(const QImage &image)
 	if (imageFormat == QImage::Format_Invalid)
 	{
 		imageFormat = image.format();
+		if (mFormat & PREMULTIPLIED)
+		{
+			for (int i = 0; i < SUPPORTED_PFMT_COUNT; i++)
+			{
+				if (SUPPORTED_IMAGEFMT_UNPREMULT[i] == imageFormat)
+				{
+					auto premultFormat =
+						QImage::Format(SUPPORTED_IMAGEFMT_PREMULT[i]);
+					if (premultFormat != QImage::Format_Invalid)
+					{
+						imageFormat = premultFormat;
+					}
+					break;
+				}
+			}
+		}
 	}
 
 	switch (imageFormat)
@@ -340,7 +371,8 @@ bool QPVRHandler::write(const QImage &image)
 
 		if (texV2)
 		{
-			if (pvrPixelTypeHasAlpha(outputPixelType.getPixelTypeId()))
+			if (!(mFormat & NOALPHA) &&
+				pvrPixelTypeHasAlpha(outputPixelType.getPixelTypeId()))
 			{
 				outputPixelType = CompressedPixelFormat::ETC2_RGBA;
 			} else
@@ -360,7 +392,8 @@ bool QPVRHandler::write(const QImage &image)
 		{
 			outputPixelType = tex4bpp ? CompressedPixelFormat::PVRTCII_4bpp
 									  : CompressedPixelFormat::PVRTCII_2bpp;
-		} else if (pvrPixelTypeHasAlpha(outputPixelType.getPixelTypeId()))
+		} else if (!(mFormat & NOALPHA) &&
+			pvrPixelTypeHasAlpha(outputPixelType.getPixelTypeId()))
 		{
 			outputPixelType = tex4bpp ? CompressedPixelFormat::PVRTCI_4bpp_RGBA
 									  : CompressedPixelFormat::PVRTCI_2bpp_RGBA;
@@ -712,18 +745,25 @@ bool QPVRHandler::stringToFormat(
 				cnt = -1;
 				break;
 		}
-		if (cnt == s.length())
+		bool isPremultiplied = split.endsWith(s_premultiplied);
+		int iFmt = pvrPixelTypeToImageFormat(pixelTypeId, isPremultiplied);
+		if (iFmt != QImage::Format_Invalid)
 		{
-			int iFmt = pvrPixelTypeToImageFormat(pixelTypeId,
-				!split.isEmpty() && split.at(0) == s_premultiplied);
-			if (iFmt != QImage::Format_Invalid)
+			if (format)
+				*format = result;
+			if (imageFormat)
+				*imageFormat = iFmt;
+			return true;
+		} else
+		{
+			if (isPremultiplied)
 			{
-				if (format)
-					*format = result;
-				if (imageFormat)
-					*imageFormat = iFmt;
-				return true;
+				result |= PREMULTIPLIED;
+			} else if (split.endsWith(s_noalpha))
+			{
+				result |= NOALPHA;
 			}
+			split.clear();
 		}
 	}
 
@@ -828,6 +868,16 @@ QByteArray QPVRHandler::formatToString(int format)
 			result += '_';
 			result += (0 != (format & TEXBIT4)) ? '4' : '2';
 		}
+	}
+
+	if (format & NOALPHA)
+	{
+		result += '.' + s_noalpha;
+	}
+
+	if (format & PREMULTIPLIED)
+	{
+		result += '.' + s_premultiplied;
 	}
 
 	return result;
@@ -947,34 +997,41 @@ bool QPVRHandler::scanDevice() const
 			switch (CompressedPixelFormat(pixelFormat.getPixelTypeId()))
 			{
 				case CompressedPixelFormat::PVRTCII_2bpp:
-				{
 					mFormat |= TEXV2;
 					// fall through
-				}
-
 				case CompressedPixelFormat::PVRTCI_2bpp_RGBA:
+					if (isPremultiplied)
+					{
+						mFormat |= PREMULTIPLIED;
+					}
+					// fall through
 				case CompressedPixelFormat::PVRTCI_2bpp_RGB:
 					mFormat |= PVRTC;
 					break;
 
 				case CompressedPixelFormat::PVRTCII_4bpp:
-				{
 					mFormat |= TEXV2;
 					// fall through
-				}
-
 				case CompressedPixelFormat::PVRTCI_4bpp_RGBA:
+					if (isPremultiplied)
+					{
+						mFormat |= PREMULTIPLIED;
+					}
+					// fall through
 				case CompressedPixelFormat::PVRTCI_4bpp_RGB:
 					mFormat |= PVRTC | TEXBIT4;
 					break;
 
 				case CompressedPixelFormat::ETC2_RGBA:
 				case CompressedPixelFormat::ETC2_RGB_A1:
-				{
+					if (isPremultiplied)
+					{
+						mFormat |= PREMULTIPLIED;
+					}
+					// fall through
+				case CompressedPixelFormat::ETC2_RGB:
 					mFormat |= TEXV2;
 					// fall through
-				}
-
 				case CompressedPixelFormat::ETC1:
 					mFormat |= ETC;
 					break;
