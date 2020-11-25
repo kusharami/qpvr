@@ -1,6 +1,10 @@
 PVR image format plugin for Qt
 ==============================
 
+v1.3.0	25.11.2020
+	[NEW] Supported noalpha sub type for pvrtc1 and etc2
+	[NEW] Supported premultiplied sub type for pvrtc1 and etc2
+
 v1.2.0	05.09.2019
 	[NEW] Supported RGB image sub types.
 
