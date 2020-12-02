@@ -325,31 +325,6 @@ bool QPVRHandler::write(const QImage &image)
 			return false;
 	}
 
-	if (img.format() != imageFormat)
-	{
-		img = image.convertToFormat(imageFormat);
-	}
-
-	int pixelSize = (img.pixelFormat().bitsPerPixel() + 7) / 8;
-	int width = img.width();
-	int height = img.height();
-
-	PVRTextureWrapper texture(
-		pixelType, width, height, mOrientation, isPremultiplied);
-
-	int widthBytes = img.width() * pixelSize;
-	int pvrWidthBytes =
-		int(texture.getDataSize(0, false, false)) / quint32(img.height());
-	auto pvrPtr = reinterpret_cast<char *>(texture.getDataPointer());
-
-	for (int y = 0; y < height; y++)
-	{
-		memcpy(pvrPtr, img.scanLine(y), widthBytes);
-		pvrPtr += pvrWidthBytes;
-	}
-
-	img = QImage();
-
 	bool texV2 = 0 != (mFormat & TEXV2);
 	bool tex4bpp = 0 != (mFormat & TEXBIT4);
 
@@ -403,6 +378,37 @@ bool QPVRHandler::write(const QImage &image)
 									  : CompressedPixelFormat::PVRTCI_2bpp_RGB;
 		}
 	}
+	bool hasAlpha = pvrPixelTypeHasAlpha(outputPixelType.getPixelTypeId());
+	if (!hasAlpha && image.hasAlphaChannel())
+	{
+		imageFormat = QImage::Format_RGB888;
+		imageFormatToPvrPixelType(imageFormat, &pixelType, nullptr);
+	}
+
+	if (img.format() != imageFormat)
+	{
+		img = image.convertToFormat(imageFormat);
+	}
+
+	int pixelSize = (img.pixelFormat().bitsPerPixel() + 7) / 8;
+	int width = img.width();
+	int height = img.height();
+
+	PVRTextureWrapper texture(
+		pixelType, width, height, mOrientation, isPremultiplied);
+
+	int widthBytes = img.width() * pixelSize;
+	int pvrWidthBytes =
+		int(texture.getDataSize(0, false, false)) / quint32(img.height());
+	auto pvrPtr = reinterpret_cast<char *>(texture.getDataPointer());
+
+	for (int y = 0; y < height; y++)
+	{
+		memcpy(pvrPtr, img.scanLine(y), widthBytes);
+		pvrPtr += pvrWidthBytes;
+	}
+
+	img = QImage();
 
 	if (texture.transcode(outputPixelType, quality))
 	{
