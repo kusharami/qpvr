@@ -1,16 +1,19 @@
 PVR image format plugin for Qt
 ==============================
 
+v1.3.1	02.12.2020
+	[FIX] Correct conversion from premultiplied rgba to rgb.
+
 v1.3.0	25.11.2020
-	[NEW] Supported noalpha sub type for pvrtc1 and etc2
-	[NEW] Supported premultiplied sub type for pvrtc1 and etc2
+	[NEW] Supported noalpha sub type for pvrtc1 and etc2.
+	[NEW] Supported premultiplied sub type for pvrtc1 and etc2.
 
 v1.2.0	05.09.2019
 	[NEW] Supported RGB image sub types.
 
 v1.1.1  24.04.2019
 	[NEW] Support compilation for Mingw 32 and 64 bit.
-    [FIX] Fix remove premultiplied flag
+    [FIX] Fix remove premultiplied flag.
 
 v1.1.0  27.03.2019    
 	[REFINE] Removed CCZ support because of separate CCZ 
