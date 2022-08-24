@@ -29,7 +29,7 @@ QIODevicePVRAdapter::QIODevicePVRAdapter(QIODevice *adaptee)
 
 QIODevicePVRAdapter::~QIODevicePVRAdapter()
 {
-	close();
+	QIODevicePVRAdapter::close();
 }
 
 bool QIODevicePVRAdapter::read(size_t elementSize, size_t elementCount,
