@@ -1,6 +1,9 @@
 PVR image format plugin for Qt
 ==============================
 
+v1.3.2	25.08.2022
+    [FIX] Fix destructor
+
 v1.3.1	02.12.2020
 	[FIX] Correct conversion from premultiplied rgba to rgb.
 
